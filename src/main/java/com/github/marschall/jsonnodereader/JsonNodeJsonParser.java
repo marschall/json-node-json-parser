@@ -18,7 +18,6 @@ import com.github.marschall.jsonnodereader.JsonNodeJsonParser.JsonNodeIterator.O
 
 import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
-import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParser;
@@ -66,10 +65,11 @@ public final class JsonNodeJsonParser implements JsonParser {
 
   @Override
   public boolean hasNext() {
-    if (this.currentState == Event.END_OBJECT || this.currentState == Event.END_ARRAY) {
-      return this.nodeStack.isEmpty();
-    }
-    return true;
+//    if (this.currentState == Event.END_OBJECT || this.currentState == Event.END_ARRAY) {
+//      return this.nodeStack.isEmpty();
+//    }
+//    return true;
+    return !((this.currentState == Event.END_OBJECT || this.currentState == Event.END_ARRAY) && this.nodeStack.isEmpty());
   }
 
   @Override
@@ -81,30 +81,65 @@ public final class JsonNodeJsonParser implements JsonParser {
     return this.currentState;
   }
 
+  private void transition() {
+    if (this.currentState == null) {
+      this.currentState = this.currentNode.startEvent();
+    } else {
+      if (this.currentState == Event.END_OBJECT || this.currentState == Event.END_ARRAY) {
+        this.currentNode = this.nodeStack.pop();
+      }
+      switch (this.currentNode) {
+        case ArrayJsonNodeIterator currentArray -> {
+          if (currentArray.hasNext()) {
+            currentArray.next();
+            nextStateAndEndOfTheObjectOrArray();
+          } else {
+            this.currentState = Event.END_ARRAY;
+          }
+        }
+        case ObjectJsonNodeIterator currentObject -> {
+          if (this.currentState == Event.KEY_NAME) {
+            nextStateAndEndOfTheObjectOrArray();
+          } else {
+            if (currentObject.hasNext()) {
+              currentObject.next();
+              this.currentState = Event.KEY_NAME;
+            } else {
+              this.currentState = Event.END_OBJECT;
+            }
+          }
+        }
+      };
+    }
+  }
+
   private void nextStateAndEndOfTheObjectOrArray() {
     this.currentState = getState(this.currentNode.getJsonValue());
-    if (this.currentState == Event.START_ARRAY) {
+    if (this.currentState == Event.START_ARRAY || this.currentState == Event.START_OBJECT) {
       this.nodeStack.push(this.currentNode);
-      this.currentNode = new ArrayJsonNodeIterator(this.currentNode.getJsonValue());
-    } else if (this.currentState == Event.START_OBJECT) {
-      this.nodeStack.push(this.currentNode);
-      this.currentNode = new ArrayJsonNodeIterator(this.currentNode.getJsonValue());
+      this.currentNode = JsonNodeIterator.adapt(this.currentNode.getJsonValue());
     }
+//    if (this.currentState == Event.START_ARRAY) {
+//      this.nodeStack.push(this.currentNode);
+//      this.currentNode = new ArrayJsonNodeIterator(this.currentNode.getJsonValue());
+//    } else if (this.currentState == Event.START_OBJECT) {
+//      this.nodeStack.push(this.currentNode);
+//      this.currentNode = new ObjectJsonNodeIterator(this.currentNode.getJsonValue());
+//    }
   }
 
   @Override
   public String getString() {
     return switch (this.currentState) {
       case KEY_NAME -> ((ObjectJsonNodeIterator) this.currentNode).getKey();
-      case VALUE_STRING -> ((JsonString) this.currentNode.getJsonValue()).getString();
-      case VALUE_NUMBER -> this.currentNode.getJsonValue().textValue();
+      case VALUE_STRING, VALUE_NUMBER -> this.currentNode.getJsonValue().asText();
       default -> throw new IllegalStateException("getString() not supported in current state");
     };
   }
 
   @Override
   public boolean isIntegralNumber() {
-    if (this.currentState == Event.VALUE_NUMBER) {
+    if (this.currentState != Event.VALUE_NUMBER) {
       throw new IllegalStateException("current state is not a number");
     }
     return this.currentNode.getJsonValue().isIntegralNumber();
@@ -112,7 +147,7 @@ public final class JsonNodeJsonParser implements JsonParser {
 
   @Override
   public int getInt() {
-    if (this.currentState == Event.VALUE_NUMBER) {
+    if (this.currentState != Event.VALUE_NUMBER) {
       throw new IllegalStateException("current state is not a number");
     }
     return this.currentNode.getJsonValue().intValue();
@@ -120,7 +155,7 @@ public final class JsonNodeJsonParser implements JsonParser {
 
   @Override
   public long getLong() {
-    if (this.currentState == Event.VALUE_NUMBER) {
+    if (this.currentState != Event.VALUE_NUMBER) {
       throw new IllegalStateException("current state is not a number");
     }
     return this.currentNode.getJsonValue().longValue();
@@ -128,7 +163,7 @@ public final class JsonNodeJsonParser implements JsonParser {
 
   @Override
   public BigDecimal getBigDecimal() {
-    if (this.currentState == Event.VALUE_NUMBER) {
+    if (this.currentState != Event.VALUE_NUMBER) {
       throw new IllegalStateException("current state is not a number");
     }
     return this.currentNode.getJsonValue().decimalValue();
