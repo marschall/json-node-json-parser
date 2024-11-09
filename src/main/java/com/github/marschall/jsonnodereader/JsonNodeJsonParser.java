@@ -65,11 +65,10 @@ public final class JsonNodeJsonParser implements JsonParser {
 
   @Override
   public boolean hasNext() {
-//    if (this.currentState == Event.END_OBJECT || this.currentState == Event.END_ARRAY) {
-//      return this.nodeStack.isEmpty();
-//    }
-//    return true;
-    return !((this.currentState == Event.END_OBJECT || this.currentState == Event.END_ARRAY) && this.nodeStack.isEmpty());
+    if (this.currentState == Event.END_OBJECT || this.currentState == Event.END_ARRAY) {
+      return !this.nodeStack.isEmpty();
+    }
+    return true;
   }
 
   @Override
@@ -77,55 +76,30 @@ public final class JsonNodeJsonParser implements JsonParser {
     if (!hasNext()) {
       throw new NoSuchElementException();
     }
-    transition();
+    advance();
     return this.currentState;
   }
 
-  private void transition() {
+  private void advance() {
     if (this.currentState == null) {
       this.currentState = this.currentNode.startEvent();
     } else {
       if (this.currentState == Event.END_OBJECT || this.currentState == Event.END_ARRAY) {
         this.currentNode = this.nodeStack.pop();
       }
-      switch (this.currentNode) {
-        case ArrayJsonNodeIterator currentArray -> {
-          if (currentArray.hasNext()) {
-            currentArray.next();
-            nextStateAndEndOfTheObjectOrArray();
-          } else {
-            this.currentState = Event.END_ARRAY;
-          }
-        }
-        case ObjectJsonNodeIterator currentObject -> {
-          if (this.currentState == Event.KEY_NAME) {
-            nextStateAndEndOfTheObjectOrArray();
-          } else {
-            if (currentObject.hasNext()) {
-              currentObject.next();
-              this.currentState = Event.KEY_NAME;
-            } else {
-              this.currentState = Event.END_OBJECT;
-            }
-          }
-        }
-      };
+      this.currentState = this.currentNode.nextState(this.currentState);
+      this.pushNodeIfStart();
     }
   }
-
-  private void nextStateAndEndOfTheObjectOrArray() {
-    this.currentState = getState(this.currentNode.getJsonValue());
-    if (this.currentState == Event.START_ARRAY || this.currentState == Event.START_OBJECT) {
+  
+  private void pushNodeIfStart() {
+    if (this.currentState == Event.START_ARRAY) {
       this.nodeStack.push(this.currentNode);
-      this.currentNode = JsonNodeIterator.adapt(this.currentNode.getJsonValue());
+      this.currentNode = new ArrayJsonNodeIterator(this.currentNode.getJsonValue());
+    } else if (this.currentState == Event.START_OBJECT) {
+      this.nodeStack.push(this.currentNode);
+      this.currentNode = new ObjectJsonNodeIterator(this.currentNode.getJsonValue());
     }
-//    if (this.currentState == Event.START_ARRAY) {
-//      this.nodeStack.push(this.currentNode);
-//      this.currentNode = new ArrayJsonNodeIterator(this.currentNode.getJsonValue());
-//    } else if (this.currentState == Event.START_OBJECT) {
-//      this.nodeStack.push(this.currentNode);
-//      this.currentNode = new ObjectJsonNodeIterator(this.currentNode.getJsonValue());
-//    }
   }
 
   @Override
@@ -181,30 +155,66 @@ public final class JsonNodeJsonParser implements JsonParser {
 
   @Override
   public JsonObject getObject() {
-    // TODO Auto-generated method stub
-    return JsonParser.super.getObject();
+    if (this.currentState == Event.START_OBJECT) {
+      throw new IllegalStateException("not in start object");
+    }
+    JsonObject object;
+    JsonNode currentValue = this.currentNode.getJsonValue();
+    if (currentValue.isEmpty()) {
+      object = JsonValue.EMPTY_JSON_OBJECT;
+    } else {
+      object = new JacksonJsonObject(currentValue);
+    }
+    // #transition() will pop the stack 
+    this.currentState = Event.END_OBJECT;
+    return object;
   }
 
   @Override
   public JsonValue getValue() {
-    // TODO Auto-generated method stub
-    return JsonParser.super.getValue();
+    return switch (this.currentState) {
+      case END_OBJECT, END_ARRAY -> throw new IllegalStateException("in state end");
+      case START_ARRAY -> this.getArray();
+      case START_OBJECT -> this.getObject();
+      case KEY_NAME, VALUE_STRING -> new JacksonJsonString(this.currentNode.getJsonValue());
+      case VALUE_NUMBER -> new JacksonJsonNumber(this.currentNode.getJsonValue());
+      case VALUE_TRUE -> JsonValue.TRUE;
+      case VALUE_FALSE -> JsonValue.FALSE;
+      case VALUE_NULL -> JsonValue.NULL;
+    };
   }
 
   @Override
   public JsonArray getArray() {
-    // TODO Auto-generated method stub
-    return JsonParser.super.getArray();
+    if (this.currentState == Event.START_ARRAY) {
+      throw new IllegalStateException("not in start array");
+    }
+    JsonArray array;
+    JsonNode currentValue = this.currentNode.getJsonValue();
+    if (currentValue.isEmpty()) {
+      array = JsonValue.EMPTY_JSON_ARRAY;
+    } else {
+      array = new JacksonJsonArray(currentValue);
+    }
+    // #transition() will pop the stack 
+    this.currentState = Event.END_ARRAY;
+    return array;
   }
 
   @Override
   public Stream<JsonValue> getArrayStream() {
+    if (this.currentState == Event.START_ARRAY) {
+      throw new IllegalStateException("not in start array");
+    }
     // TODO Auto-generated method stub
     return JsonParser.super.getArrayStream();
   }
 
   @Override
   public Stream<Entry<String, JsonValue>> getObjectStream() {
+    if (this.currentState == Event.START_OBJECT) {
+      throw new IllegalStateException("not in start object");
+    }
     // TODO Auto-generated method stub
     return JsonParser.super.getObjectStream();
   }
@@ -217,14 +227,18 @@ public final class JsonNodeJsonParser implements JsonParser {
 
   @Override
   public void skipArray() {
-    // TODO Auto-generated method stub
-    JsonParser.super.skipArray();
+    if (this.currentNode instanceof ArrayJsonNodeIterator a) {
+      this.currentState = Event.END_ARRAY;
+      // #transition() will pop the stack 
+    }
   }
 
   @Override
   public void skipObject() {
-    // TODO Auto-generated method stub
-    JsonParser.super.skipObject();
+    if (this.currentNode instanceof ObjectJsonNodeIterator o) {
+      this.currentState = Event.END_OBJECT;
+      // #transition() will pop the stack 
+    }
   }
 
   @Override
@@ -245,9 +259,7 @@ public final class JsonNodeJsonParser implements JsonParser {
       }
     }
 
-    boolean hasNext();
-
-    Object next();
+    Event nextState(Event currentState);
 
     JsonNode getJsonValue();
     
@@ -273,16 +285,17 @@ public final class JsonNodeJsonParser implements JsonParser {
       }
 
       @Override
-      public boolean hasNext() {
-        return this.iterator.hasNext();
-      }
-
-      @Override
-      public Entry<String, JsonNode> next() {
-        Map.Entry<String, JsonNode> next = this.iterator.next();
-        this.key = next.getKey();
-        this.value = next.getValue();
-        return next;
+      public Event nextState(Event currentState) {
+        if (currentState == Event.KEY_NAME) {
+          return getState(this.value);
+        } else  if (this.iterator.hasNext()) {
+          Map.Entry<String, JsonNode> next = this.iterator.next();
+          this.key = next.getKey();
+          this.value = next.getValue();
+          return Event.KEY_NAME;
+        } else {
+          return Event.END_OBJECT;
+        }
       }
 
       @Override
@@ -307,14 +320,13 @@ public final class JsonNodeJsonParser implements JsonParser {
       }
 
       @Override
-      public boolean hasNext() {
-        return this.nodeIterator.hasNext();
-      }
-
-      @Override
-      public JsonNode next() {
-        this.value = this.nodeIterator.next();
-        return this.value;
+      public Event nextState(Event currentState) {
+        if (this.nodeIterator.hasNext()) {
+          this.value = this.nodeIterator.next();
+          return getState(this.value);
+        } else {
+          return Event.END_ARRAY;
+        }
       }
 
       @Override
