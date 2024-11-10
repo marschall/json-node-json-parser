@@ -7,6 +7,7 @@ import java.util.Objects;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import jakarta.json.JsonNumber;
+import jakarta.json.JsonString;
 
 final class JsonNodeJsonNumber implements JsonNumber {
   
@@ -34,7 +35,7 @@ final class JsonNodeJsonNumber implements JsonNumber {
 
   @Override
   public int intValueExact() {
-    if (this.jsonNode.canConvertToInt()) {
+    if (this.jsonNode.canConvertToInt() && this.jsonNode.canConvertToExactIntegral()) {
       return this.jsonNode.intValue();
     } else {
       throw new ArithmeticException();
@@ -48,7 +49,7 @@ final class JsonNodeJsonNumber implements JsonNumber {
 
   @Override
   public long longValueExact() {
-    if (this.jsonNode.canConvertToLong()) {
+    if (this.jsonNode.canConvertToLong() && this.jsonNode.canConvertToExactIntegral()) {
       return this.jsonNode.longValue();
     } else {
       throw new ArithmeticException();
@@ -77,6 +78,32 @@ final class JsonNodeJsonNumber implements JsonNumber {
   @Override
   public BigDecimal bigDecimalValue() {
     return this.jsonNode.decimalValue();
+  }
+  
+  @Override
+  public Number numberValue() {
+    return this.jsonNode.numberValue();
+  }
+  
+  @Override
+  public int hashCode() {
+    return bigDecimalValue().hashCode();
+  }
+  
+  @Override
+  public String toString() {
+    return bigDecimalValue().toString();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == this) {
+      return true;
+    }
+    if (!(obj instanceof JsonNodeJsonNumber other)) {
+      return false;
+    }
+    return this.bigDecimalValue().equals(other.bigDecimalValue());
   }
 
 }

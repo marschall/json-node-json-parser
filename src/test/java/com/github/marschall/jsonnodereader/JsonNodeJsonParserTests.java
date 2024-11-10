@@ -2,7 +2,9 @@ package com.github.marschall.jsonnodereader;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -12,21 +14,28 @@ import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.function.Supplier;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.opentest4j.TestAbortedException;
 
 import com.fasterxml.jackson.core.JacksonException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
+import jakarta.json.JsonString;
 import jakarta.json.JsonStructure;
+import jakarta.json.JsonValue;
+import jakarta.json.JsonValue.ValueType;
 import jakarta.json.stream.JsonGenerator;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
@@ -36,15 +45,19 @@ class JsonNodeJsonParserTests {
 
   private static final JsonParserFactory PARSER_FACTORY = Json.createParserFactory(null);
 
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder()
+      .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+      .build();
 
   private static final String SAMPLE_JSON = "{\"key1\":[1,1234567890,1.1,true,false,null],\"key2\":[\"string\",-2]}";
 
   private static final String NESTED_JSON_INPUT = "[{\"key1\":[1]},2,[{\"key2\":3}],4]";
   private static final String NESTED_JSON_OUTPUT = "[2,4]";
-  
-  private static final String NUMBERS = "[1, 1.0, 2147483647, -2147483648, 2147483648, -2147483649, 9223372036854775807, -9223372036854775808, 9223372036854775808, -9223372036854775809]";
-  
+
+  private static final String NUMBERS = "[1, 1.0, 2147483647, -2147483648, 2147483648, -2147483649, 9223372036854775807, -9223372036854775808, 9223372036854775808, -9223372036854775809, 1.1]";
+
+  private static final String LITERALS = "[null, true, false, \"hello\\\"world\"]";
+
   static List<Arguments> parsers() {
     return List.of(
         Arguments.of((StringParserFactory) JsonNodeJsonParserTests::defaultParser),
@@ -68,12 +81,20 @@ class JsonNodeJsonParserTests {
       assertRoundTripSkip(jsonParser);
     }
   }
-  
+
   @ParameterizedTest
   @MethodSource("parsers")
   void numbers(StringParserFactory stringParserFactory) throws IOException {
     try (JsonParser jsonParser = stringParserFactory.parse(NUMBERS)) {
       assertNumbers(jsonParser);
+    }
+  }
+
+  @ParameterizedTest
+  @MethodSource("parsers")
+  void literals(StringParserFactory stringParserFactory) throws IOException {
+    try (JsonParser jsonParser = stringParserFactory.parse(LITERALS)) {
+      assertLiterals(jsonParser);
     }
   }
 
@@ -110,19 +131,19 @@ class JsonNodeJsonParserTests {
         JsonGenerator jsonWriter = Json.createGenerator(stringWriter)) {
       while (jsonParser.hasNext()) {
         switch (jsonParser.next()) {
-          case KEY_NAME -> jsonWriter.writeKey(jsonParser.getString());
-          case START_ARRAY -> jsonWriter.writeStartArray();
-          case START_OBJECT -> jsonWriter.writeStartObject();
-          case END_ARRAY, END_OBJECT -> jsonWriter.writeEnd();
-          case VALUE_TRUE -> jsonWriter.write(true);
-          case VALUE_FALSE -> jsonWriter.write(false);
-          case VALUE_NULL -> jsonWriter.writeNull();
-          case VALUE_NUMBER -> jsonWriter.write(jsonParser.getBigDecimal());
-          case VALUE_STRING -> jsonWriter.write(jsonParser.getString());
-          default -> {
-            fail("unexpeted event");
-            break;
-          }
+        case KEY_NAME -> jsonWriter.writeKey(jsonParser.getString());
+        case START_ARRAY -> jsonWriter.writeStartArray();
+        case START_OBJECT -> jsonWriter.writeStartObject();
+        case END_ARRAY, END_OBJECT -> jsonWriter.writeEnd();
+        case VALUE_TRUE -> jsonWriter.write(true);
+        case VALUE_FALSE -> jsonWriter.write(false);
+        case VALUE_NULL -> jsonWriter.writeNull();
+        case VALUE_NUMBER -> jsonWriter.write(jsonParser.getBigDecimal());
+        case VALUE_STRING -> jsonWriter.write(jsonParser.getString());
+        default -> {
+          fail("unexpeted event");
+          break;
+        }
         };
       }
       jsonWriter.flush();
@@ -177,7 +198,7 @@ class JsonNodeJsonParserTests {
     }
     assertEquals(NESTED_JSON_OUTPUT, output);
   }
-  
+
   private static void assertNumbers(JsonParser jsonParser) {
     assertSame(Event.START_ARRAY, jsonParser.next());
 
@@ -187,6 +208,17 @@ class JsonNodeJsonParserTests {
     assertEquals(1, jsonParser.getLong());
     assertEquals(0, jsonParser.getBigDecimal().compareTo(BigDecimal.ONE));
     assertTrue(jsonParser.isIntegralNumber());
+    try {
+      JsonNumber number = (JsonNumber) jsonParser.getValue();
+      assertSame(ValueType.NUMBER, number.getValueType());
+      assertTrue(number.isIntegral());
+      Number numberValue = number.numberValue();
+      assertTrue(numberValue instanceof Integer);
+      assertEquals(Integer.valueOf(1), numberValue);
+      assertEquals("1", numberValue.toString());
+    } catch (UnsupportedOperationException e) {
+      // is optional
+    }
 
     assertSame(Event.VALUE_NUMBER, jsonParser.next());
     assertEquals(1, jsonParser.getInt());
@@ -195,9 +227,20 @@ class JsonNodeJsonParserTests {
     assertFalse(jsonParser.isIntegralNumber());
     try {
       JsonNumber number = (JsonNumber) jsonParser.getValue();
+      assertSame(ValueType.NUMBER, number.getValueType());
       assertFalse(number.isIntegral());
+      Number numberValue = number.numberValue();
+      assertTrue(numberValue instanceof BigDecimal);
+      assertEquals(0, ((BigDecimal) numberValue).compareTo(BigDecimal.ONE));
+      assertEquals(1, number.intValue());
+      assertEquals(1, number.intValueExact());
+      assertEquals(1L, number.longValue());
+      assertEquals(1L, number.longValueExact());
       assertEquals(BigInteger.ONE, number.bigIntegerValue());
       assertEquals(BigInteger.ONE, number.bigIntegerValueExact());
+      assertEquals(1.0d, number.doubleValue(), 0.0001d);
+      assertEquals("1.0", number.toString());
+      assertEquals(new BigDecimal("1.0").hashCode(), number.hashCode());
     } catch (UnsupportedOperationException e) {
       // is optional
     }
@@ -205,15 +248,28 @@ class JsonNodeJsonParserTests {
     assertSame(Event.VALUE_NUMBER, jsonParser.next());
     assertEquals(Integer.MAX_VALUE, jsonParser.getInt());
     assertEquals(Integer.MAX_VALUE, jsonParser.getLong());
-    
+
     assertSame(Event.VALUE_NUMBER, jsonParser.next());
     assertEquals(Integer.MIN_VALUE, jsonParser.getInt());
     assertEquals(Integer.MIN_VALUE, jsonParser.getLong());
-    
+
     assertSame(Event.VALUE_NUMBER, jsonParser.next());
     assertEquals(Integer.MIN_VALUE, jsonParser.getInt());
     assertEquals(Integer.MAX_VALUE + 1L, jsonParser.getLong());
-    
+    try {
+      JsonNumber number = (JsonNumber) jsonParser.getValue();
+      assertSame(ValueType.NUMBER, number.getValueType());
+      assertTrue(number.isIntegral());
+      Number numberValue = number.numberValue();
+      assertTrue(numberValue instanceof Long);
+      assertEquals(Long.valueOf(Integer.MAX_VALUE + 1L), numberValue);
+      assertThrows(ArithmeticException.class, number::intValueExact);
+      assertEquals(Integer.MAX_VALUE + 1L, number.longValueExact());
+      assertEquals(BigDecimal.valueOf(Integer.MAX_VALUE + 1L), number.bigDecimalValue());
+    } catch (UnsupportedOperationException e) {
+      // is optional
+    }
+
     assertSame(Event.VALUE_NUMBER, jsonParser.next());
     assertEquals(Integer.MAX_VALUE, jsonParser.getInt());
     assertEquals(Integer.MIN_VALUE - 1L, jsonParser.getLong());
@@ -221,23 +277,81 @@ class JsonNodeJsonParserTests {
     assertSame(Event.VALUE_NUMBER, jsonParser.next());
     assertEquals(-1, jsonParser.getInt());
     assertEquals(Long.MAX_VALUE, jsonParser.getLong());
-    
+
     assertSame(Event.VALUE_NUMBER, jsonParser.next());
     assertEquals(0, jsonParser.getInt());
     assertEquals(Long.MIN_VALUE, jsonParser.getLong());
-    
+
     assertSame(Event.VALUE_NUMBER, jsonParser.next());
     assertEquals(0, jsonParser.getInt());
     assertEquals(Long.MIN_VALUE, jsonParser.getLong());
     assertEquals(new BigDecimal("9223372036854775808"), jsonParser.getBigDecimal());
-    
+
     assertSame(Event.VALUE_NUMBER, jsonParser.next());
     assertEquals(-1, jsonParser.getInt());
     assertEquals(Long.MAX_VALUE, jsonParser.getLong());
     assertEquals(new BigDecimal("-9223372036854775809"), jsonParser.getBigDecimal());
 
+    assertSame(Event.VALUE_NUMBER, jsonParser.next());
+    try {
+      JsonNumber number = (JsonNumber) jsonParser.getValue();
+      assertSame(ValueType.NUMBER, number.getValueType());
+      assertFalse(number.isIntegral());
+      assertThrows(ArithmeticException.class, number::intValueExact);
+      assertThrows(ArithmeticException.class, number::longValueExact);
+      assertThrows(ArithmeticException.class, number::bigIntegerValueExact);
+      assertEquals("1.1", number.toString());
+      assertEquals(new BigDecimal("1.1").hashCode(), number.hashCode());
+    } catch (UnsupportedOperationException e) {
+      // is optional
+    }
+
     assertSame(Event.END_ARRAY, jsonParser.next());
     assertFalse(jsonParser.hasNext());
+  }
+
+
+  private static void assertLiterals(JsonParser jsonParser) {
+    assertSame(Event.START_ARRAY, jsonParser.next());
+
+    assertSame(Event.VALUE_NULL, jsonParser.next());
+    JsonValue value = assumeDoesNotThrow(UnsupportedOperationException.class, jsonParser::getValue);
+    assertSame(ValueType.NULL, value.getValueType());
+
+    assertSame(Event.VALUE_TRUE, jsonParser.next());
+    value = jsonParser.getValue();
+    assertSame(ValueType.TRUE, value.getValueType());
+
+    assertSame(Event.VALUE_FALSE, jsonParser.next());
+    value = jsonParser.getValue();
+    assertSame(ValueType.FALSE, value.getValueType());
+
+    assertSame(Event.VALUE_STRING, jsonParser.next());
+    value = jsonParser.getValue();
+    assertSame(ValueType.STRING, value.getValueType());
+    JsonString jsonString = (JsonString) value;
+    assertEquals("hello\"world", jsonString.getString());
+    assertEquals("hello\"world", jsonString.getChars().toString());
+    assertEquals("hello\"world".hashCode(), jsonString.hashCode());
+    assertNotEquals(null, jsonString);
+    assertEquals(Json.createValue("hello\"world"), jsonString);
+    assertEquals(jsonString, Json.createValue("hello\"world"));
+    assertEquals("\"hello\\\"world\"", jsonString.toString());
+
+    assertSame(Event.END_ARRAY, jsonParser.next());
+    assertFalse(jsonParser.hasNext());
+  }
+  
+  private static <T> T assumeDoesNotThrow(Class<? extends RuntimeException> exceptionClass, Supplier<T> supplier) {
+    try {
+      return supplier.get();
+    } catch (RuntimeException e) {
+      if (exceptionClass.isInstance(e)) {
+        throw new TestAbortedException();
+      } else {
+        throw e;
+      }
+    }
   }
 
 }

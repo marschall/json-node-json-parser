@@ -2,6 +2,7 @@ package com.github.marschall.jsonnodereader;
 
 import java.util.Objects;
 
+import com.fasterxml.jackson.core.io.JsonStringEncoder;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import jakarta.json.JsonString;
@@ -44,6 +45,16 @@ final class JsonNodeJsonString implements JsonString {
   @Override
   public int hashCode() {
     return this.jsonNode.hashCode();
+  }
+
+  @Override
+  public String toString() {
+    String textValue = this.jsonNode.textValue();
+    StringBuilder output = new StringBuilder(textValue.length() + 2);
+    output.append('"');
+    JsonStringEncoder.getInstance().quoteAsString(textValue, output);
+    output.append('"');
+    return output.toString();
   }
 
 }
