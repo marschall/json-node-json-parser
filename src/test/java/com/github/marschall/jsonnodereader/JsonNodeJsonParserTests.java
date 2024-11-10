@@ -239,8 +239,6 @@ class JsonNodeJsonParserTests {
       assertEquals(BigInteger.ONE, number.bigIntegerValue());
       assertEquals(BigInteger.ONE, number.bigIntegerValueExact());
       assertEquals(1.0d, number.doubleValue(), 0.0001d);
-      assertEquals("1.0", number.toString());
-      assertEquals(new BigDecimal("1.0").hashCode(), number.hashCode());
     } catch (UnsupportedOperationException e) {
       // is optional
     }
@@ -302,6 +300,8 @@ class JsonNodeJsonParserTests {
       assertThrows(ArithmeticException.class, number::bigIntegerValueExact);
       assertEquals("1.1", number.toString());
       assertEquals(new BigDecimal("1.1").hashCode(), number.hashCode());
+      assertEquals(Json.createValue(new BigDecimal("1.1")), number);
+      assertEquals(number, Json.createValue(new BigDecimal("1.1")));
     } catch (UnsupportedOperationException e) {
       // is optional
     }

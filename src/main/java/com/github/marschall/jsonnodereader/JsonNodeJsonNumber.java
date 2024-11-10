@@ -7,7 +7,6 @@ import java.util.Objects;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import jakarta.json.JsonNumber;
-import jakarta.json.JsonString;
 
 final class JsonNodeJsonNumber implements JsonNumber {
   
@@ -100,7 +99,7 @@ final class JsonNodeJsonNumber implements JsonNumber {
     if (obj == this) {
       return true;
     }
-    if (!(obj instanceof JsonNodeJsonNumber other)) {
+    if (!(obj instanceof JsonNumber other)) {
       return false;
     }
     return this.bigDecimalValue().equals(other.bigDecimalValue());
