@@ -163,7 +163,7 @@ public final class JsonNodeJsonParser implements JsonParser {
     if (currentValue.isEmpty()) {
       object = JsonValue.EMPTY_JSON_OBJECT;
     } else {
-      object = new JacksonJsonObject(currentValue);
+      object = new JsonNodeJsonObject(currentValue);
     }
     // #transition() will pop the stack 
     this.currentState = Event.END_OBJECT;
@@ -176,8 +176,8 @@ public final class JsonNodeJsonParser implements JsonParser {
       case END_OBJECT, END_ARRAY -> throw new IllegalStateException("in state end");
       case START_ARRAY -> this.getArray();
       case START_OBJECT -> this.getObject();
-      case KEY_NAME, VALUE_STRING -> new JacksonJsonString(this.currentNode.getJsonValue());
-      case VALUE_NUMBER -> new JacksonJsonNumber(this.currentNode.getJsonValue());
+      case KEY_NAME, VALUE_STRING -> new JsonNodeJsonString(this.currentNode.getJsonValue());
+      case VALUE_NUMBER -> new JsonNodeJsonNumber(this.currentNode.getJsonValue());
       case VALUE_TRUE -> JsonValue.TRUE;
       case VALUE_FALSE -> JsonValue.FALSE;
       case VALUE_NULL -> JsonValue.NULL;
@@ -194,7 +194,7 @@ public final class JsonNodeJsonParser implements JsonParser {
     if (currentValue.isEmpty()) {
       array = JsonValue.EMPTY_JSON_ARRAY;
     } else {
-      array = new JacksonJsonArray(currentValue);
+      array = new JsonNodeJsonArray(currentValue);
     }
     // #transition() will pop the stack 
     this.currentState = Event.END_ARRAY;

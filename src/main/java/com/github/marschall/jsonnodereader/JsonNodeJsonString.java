@@ -6,11 +6,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import jakarta.json.JsonString;
 
-final class JacksonJsonString implements JsonString {
+final class JsonNodeJsonString implements JsonString {
 
   private final JsonNode jsonNode;
 
-  JacksonJsonString(JsonNode jsonNode) {
+  JsonNodeJsonString(JsonNode jsonNode) {
     Objects.requireNonNull(jsonNode, "jsonNode");
     this.jsonNode = jsonNode;
   }

@@ -8,11 +8,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import jakarta.json.JsonNumber;
 
-final class JacksonJsonNumber implements JsonNumber {
+final class JsonNodeJsonNumber implements JsonNumber {
   
   private final JsonNode jsonNode;
 
-  JacksonJsonNumber(JsonNode jsonNode) {
+  JsonNodeJsonNumber(JsonNode jsonNode) {
     Objects.requireNonNull(jsonNode, "jsonNode");
     this.jsonNode = jsonNode;
   }
@@ -34,8 +34,11 @@ final class JacksonJsonNumber implements JsonNumber {
 
   @Override
   public int intValueExact() {
-    // TODO Auto-generated method stub
-    return 0;
+    if (this.jsonNode.canConvertToInt()) {
+      return this.jsonNode.intValue();
+    } else {
+      throw new ArithmeticException();
+    }
   }
 
   @Override
@@ -45,8 +48,11 @@ final class JacksonJsonNumber implements JsonNumber {
 
   @Override
   public long longValueExact() {
-    // TODO Auto-generated method stub
-    return 0;
+    if (this.jsonNode.canConvertToLong()) {
+      return this.jsonNode.longValue();
+    } else {
+      throw new ArithmeticException();
+    }
   }
 
   @Override
@@ -56,8 +62,11 @@ final class JacksonJsonNumber implements JsonNumber {
 
   @Override
   public BigInteger bigIntegerValueExact() {
-    // TODO Auto-generated method stub
-    return null;
+    if (this.jsonNode.canConvertToExactIntegral()) {
+      return this.jsonNode.bigIntegerValue();
+    } else {
+      throw new ArithmeticException();
+    }
   }
 
   @Override

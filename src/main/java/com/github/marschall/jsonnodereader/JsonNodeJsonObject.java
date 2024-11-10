@@ -13,11 +13,11 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
-final class JacksonJsonObject implements JsonObject {
+final class JsonNodeJsonObject implements JsonObject {
   
   private final JsonNode jsonNode;
 
-  JacksonJsonObject(JsonNode jsonNode) {
+  JsonNodeJsonObject(JsonNode jsonNode) {
     Objects.requireNonNull(jsonNode, "jsonNode");
     this.jsonNode = jsonNode;
   }
