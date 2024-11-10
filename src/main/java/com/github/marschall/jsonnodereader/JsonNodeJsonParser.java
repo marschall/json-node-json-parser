@@ -24,13 +24,12 @@ import jakarta.json.stream.JsonParser;
 
 /**
  * A Jakarta {@link JsonParser} that works on a Jackson {@link JsonNode}.
- * 
- * @see org.eclipse.parsson.JsonStructureParser
  */
 public final class JsonNodeJsonParser implements JsonParser {
+  // implementation similar to org.eclipse.parsson.JsonStructureParser
 
   private static final Map<JsonNodeType, Event> TYPE_TO_EVENT_MAP;
-  
+
   static {
     TYPE_TO_EVENT_MAP = new EnumMap<>(JsonNodeType.class);
     TYPE_TO_EVENT_MAP.put(JsonNodeType.ARRAY, Event.START_ARRAY);
@@ -39,7 +38,7 @@ public final class JsonNodeJsonParser implements JsonParser {
     TYPE_TO_EVENT_MAP.put(JsonNodeType.STRING, Event.VALUE_STRING);
     TYPE_TO_EVENT_MAP.put(JsonNodeType.NULL, Event.VALUE_NULL);
   }
-  
+
   private static Event getState(JsonNode node) {
     JsonNodeType nodeType = node.getNodeType();
     if (nodeType == JsonNodeType.BOOLEAN) {
@@ -57,6 +56,11 @@ public final class JsonNodeJsonParser implements JsonParser {
   private Event currentState;
   private final Deque<JsonNodeIterator> nodeStack;
 
+  /**
+   * Initializes a {@link JsonNodeJsonParser}.
+   * 
+   * @param root the root node, must be an array or object, not {@code null}
+   */
   public JsonNodeJsonParser(JsonNode root) {
     Objects.requireNonNull(root, "root");
     this.currentNode = JsonNodeIterator.adapt(root);

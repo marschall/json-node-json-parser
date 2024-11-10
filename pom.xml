@@ -123,6 +123,8 @@
         <configuration>
           <links>
             <link>https://docs.oracle.com/en/java/javase/21/docs/api/</link>
+            <link>https://www.javadoc.io/doc/com.fasterxml.jackson.core/jackson-databind/latest</link>
+            <link>https://jakarta.ee/specifications/platform/10/apidocs/</link>
           </links>
           <release>21</release>
         </configuration>
