@@ -166,4 +166,23 @@ final class JsonNodeJsonObject implements JsonObject {
     return this.jsonNode.get(name).isNull();
   }
 
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == this) {
+      return true;
+    }
+    if (!(obj instanceof JsonObject other)) {
+      return false;
+    }
+    return JsonNodeAdapter.objectEquals(this.jsonNode, other);
+  }
+
+//  @Override
+//  public int hashCode() {
+//    int h = 0;
+//    for (Entry<K, V> entry : entrySet())
+//        h += entry.hashCode();
+//    return h;
+//  }
+
 }

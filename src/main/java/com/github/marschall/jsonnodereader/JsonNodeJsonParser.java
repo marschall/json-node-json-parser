@@ -159,15 +159,15 @@ public final class JsonNodeJsonParser implements JsonParser {
 
   @Override
   public JsonObject getObject() {
-    if (this.currentState == Event.START_OBJECT) {
+    if (this.currentState != Event.START_OBJECT) {
       throw new IllegalStateException("not in start object");
     }
     JsonObject object;
-    JsonNode currentValue = this.currentNode.getJsonValue();
-    if (currentValue.isEmpty()) {
+    JsonNode parentValue = this.nodeStack.peek().getJsonValue();
+    if (parentValue.isEmpty()) {
       object = JsonValue.EMPTY_JSON_OBJECT;
     } else {
-      object = new JsonNodeJsonObject(currentValue);
+      object = new JsonNodeJsonObject(parentValue);
     }
     // #transition() will pop the stack 
     this.currentState = Event.END_OBJECT;
@@ -190,15 +190,15 @@ public final class JsonNodeJsonParser implements JsonParser {
 
   @Override
   public JsonArray getArray() {
-    if (this.currentState == Event.START_ARRAY) {
+    if (this.currentState != Event.START_ARRAY) {
       throw new IllegalStateException("not in start array");
     }
     JsonArray array;
-    JsonNode currentValue = this.currentNode.getJsonValue();
-    if (currentValue.isEmpty()) {
+    JsonNode parentValue = this.nodeStack.peek().getJsonValue();
+    if (parentValue.isEmpty()) {
       array = JsonValue.EMPTY_JSON_ARRAY;
     } else {
-      array = new JsonNodeJsonArray(currentValue);
+      array = new JsonNodeJsonArray(parentValue);
     }
     // #transition() will pop the stack 
     this.currentState = Event.END_ARRAY;

@@ -14,6 +14,7 @@ import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 
 import org.junit.jupiter.params.ParameterizedTest;
@@ -57,6 +58,10 @@ class JsonNodeJsonParserTests {
   private static final String NUMBERS = "[1, 1.0, 2147483647, -2147483648, 2147483648, -2147483649, 9223372036854775807, -9223372036854775808, 9223372036854775808, -9223372036854775809, 1.1]";
 
   private static final String LITERALS = "[null, true, false, \"hello\\\"world\"]";
+  
+  private static final String EMPTY_STRUCTURES = "[[], {}]";
+  
+  private static final String STRUCTURES = "[[null, true, false, 1, \"one\", {\"key\": \"value\"}], {\"key1\": true, \"key2\": false, \"key3\": 1, \"key4\": [\"value4\"]}]";
 
   static List<Arguments> parsers() {
     return List.of(
@@ -98,6 +103,22 @@ class JsonNodeJsonParserTests {
     }
   }
 
+  @ParameterizedTest
+  @MethodSource("parsers")
+  void emptyStructure(StringParserFactory stringParserFactory) throws IOException {
+    try (JsonParser jsonParser = stringParserFactory.parse(EMPTY_STRUCTURES)) {
+      assertEmptyStructures(jsonParser);
+    }
+  }
+
+  @ParameterizedTest
+  @MethodSource("parsers")
+  void structure(StringParserFactory stringParserFactory) throws IOException {
+    try (JsonParser jsonParser = stringParserFactory.parse(STRUCTURES)) {
+      assertStructures(jsonParser);
+    }
+  }
+
   @FunctionalInterface
   interface StringParserFactory {
 
@@ -121,8 +142,8 @@ class JsonNodeJsonParserTests {
   }
 
   private static JsonParser jsonNodeJsonParser(String json) throws JacksonException {
-    JsonNode jsonNode = OBJECT_MAPPER.readTree(json);
-    return new JsonNodeJsonParser(jsonNode);
+    JsonNode jacksonNode = OBJECT_MAPPER.readTree(json);
+    return new JsonNodeJsonParser(jacksonNode);
   }
 
   private static void assertRoundTrip(JsonParser jsonParser) throws IOException {
@@ -341,7 +362,70 @@ class JsonNodeJsonParserTests {
     assertSame(Event.END_ARRAY, jsonParser.next());
     assertFalse(jsonParser.hasNext());
   }
-  
+
+  private static void assertEmptyStructures(JsonParser jsonParser) {
+    assertSame(Event.START_ARRAY, jsonParser.next());
+
+    assertSame(Event.START_ARRAY, jsonParser.next());
+    JsonArray jsonArray = assumeDoesNotThrow(UnsupportedOperationException.class, jsonParser::getArray);
+    assertEquals(JsonValue.EMPTY_JSON_ARRAY, jsonArray);
+    assertEquals(JsonValue.EMPTY_JSON_ARRAY.hashCode(), jsonArray.hashCode());
+    assertEquals(List.of().hashCode(), jsonArray.hashCode());
+    assertEquals("[]", jsonArray.toString());
+    assertSame(Event.END_ARRAY, jsonParser.currentEvent());
+
+    assertSame(Event.START_OBJECT, jsonParser.next());
+    JsonObject jsonObject = jsonParser.getObject();
+    assertEquals(JsonValue.EMPTY_JSON_OBJECT, jsonObject);
+    assertEquals(JsonValue.EMPTY_JSON_OBJECT.hashCode(), jsonObject.hashCode());
+    assertEquals(Map.of().hashCode(), jsonObject.hashCode());
+    assertEquals("{}", jsonObject.toString());
+    assertSame(Event.END_OBJECT, jsonParser.currentEvent());
+
+    assertSame(Event.END_ARRAY, jsonParser.next());
+    assertFalse(jsonParser.hasNext());
+  }
+
+  private static void assertStructures(JsonParser jsonParser) {
+    assertSame(Event.START_ARRAY, jsonParser.next());
+
+    assertSame(Event.START_ARRAY, jsonParser.next());
+    JsonArray jsonArray = assumeDoesNotThrow(UnsupportedOperationException.class, jsonParser::getArray);
+    assertEquals(6, jsonArray.size());
+    assertFalse(jsonArray.isEmpty());
+    assertTrue(jsonArray.contains(Json.createValue(1)));
+    assertFalse(jsonArray.contains(Json.createValue(2)));
+
+    assertTrue(jsonArray.isNull(0));
+    assertFalse(jsonArray.isNull(1));
+    assertEquals(3, jsonArray.indexOf(Json.createValue(1)));
+    assertEquals(3, jsonArray.lastIndexOf(Json.createValue(1)));
+    assertEquals(-1, jsonArray.indexOf(Json.createValue(2)));
+    assertEquals(-1, jsonArray.lastIndexOf(Json.createValue(2)));
+    assertEquals(-1, jsonArray.indexOf("2"));
+    assertEquals(-1, jsonArray.lastIndexOf("2"));
+    
+    JsonArray expectedArray = Json.createArrayBuilder()
+        .addNull()
+        .add(true)
+        .add(false)
+        .add(1)
+        .add("one")
+        .add(Json.createObjectBuilder().add("key", "value").build())
+        .build();
+    assertEquals(expectedArray, jsonArray);
+    assertEquals(jsonArray, expectedArray);
+    assertSame(Event.END_ARRAY, jsonParser.currentEvent());
+
+    assertSame(Event.START_OBJECT, jsonParser.next());
+    JsonObject jsonObject = jsonParser.getObject();
+    assertEquals(4, jsonObject.size());
+    assertSame(Event.END_OBJECT, jsonParser.currentEvent());
+
+    assertSame(Event.END_ARRAY, jsonParser.next());
+    assertFalse(jsonParser.hasNext());
+  }
+
   private static <T> T assumeDoesNotThrow(Class<? extends RuntimeException> exceptionClass, Supplier<T> supplier) {
     try {
       return supplier.get();

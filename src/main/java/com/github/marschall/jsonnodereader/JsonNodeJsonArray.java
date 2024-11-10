@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -40,16 +41,23 @@ final class JsonNodeJsonArray implements JsonArray {
 
   @Override
   public boolean contains(Object o) {
-    // TODO Auto-generated method stub
+    Objects.requireNonNull(o);
+    if (!(o instanceof JsonValue jsonValue)) {
+      return false;
+    }
+    for (int i = 0; i < this.size(); i++) {
+      if (JsonNodeAdapter.valueEquals(this.jsonNode.get(i), jsonValue)) {
+        return true;
+      }
+    }
     return false;
   }
 
   @Override
   public Iterator<JsonValue> iterator() {
-    // TODO Auto-generated method stub
-    return null;
+    return new JsonValueIterator();
   }
-
+  
   @Override
   public Object[] toArray() {
     // TODO Auto-generated method stub
@@ -74,8 +82,12 @@ final class JsonNodeJsonArray implements JsonArray {
 
   @Override
   public boolean containsAll(Collection<?> c) {
-    // TODO Auto-generated method stub
-    return false;
+    for (Object object : c) {
+      if (!this.contains(object)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override
@@ -105,8 +117,8 @@ final class JsonNodeJsonArray implements JsonArray {
 
   @Override
   public JsonValue get(int index) {
-    // TODO Auto-generated method stub
-    return null;
+    JsonNode value = this.jsonNode.get(Objects.checkIndex(index, this.size()));
+    return JsonNodeAdapter.adapt(value);
   }
 
   @Override
@@ -126,26 +138,38 @@ final class JsonNodeJsonArray implements JsonArray {
 
   @Override
   public int indexOf(Object o) {
-    // TODO Auto-generated method stub
-    return 0;
+    if (!(o instanceof JsonValue jsonValue)) {
+      return -1;
+    }
+    for (int i = 0; i < this.size(); i++) {
+      if (JsonNodeAdapter.valueEquals(this.jsonNode.get(i), jsonValue)) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   @Override
   public int lastIndexOf(Object o) {
-    // TODO Auto-generated method stub
-    return 0;
+    if (!(o instanceof JsonValue jsonValue)) {
+      return -1;
+    }
+    for (int i = this.size() -1 ; i >= 0; i--) {
+      if (JsonNodeAdapter.valueEquals(this.jsonNode.get(i), jsonValue)) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   @Override
   public ListIterator<JsonValue> listIterator() {
-    // TODO Auto-generated method stub
-    return null;
+    return new JsonValueIterator();
   }
 
   @Override
   public ListIterator<JsonValue> listIterator(int index) {
-    // TODO Auto-generated method stub
-    return null;
+    return new JsonValueIterator(Objects.checkIndex(index, this.size()));
   }
 
   @Override
@@ -222,8 +246,99 @@ final class JsonNodeJsonArray implements JsonArray {
 
   @Override
   public boolean isNull(int index) {
-    // TODO Auto-generated method stub
-    return false;
+    JsonNode value = this.jsonNode.get(Objects.checkIndex(index, this.size()));
+    return value.isNull();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == this) {
+      return true;
+    }
+    if (!(obj instanceof JsonArray other)) {
+      return false;
+    }
+    return JsonNodeAdapter.arrayEquals(this.jsonNode, other);
+  }
+
+//  @Override
+//  public int hashCode() {
+//    int hashCode = 1;
+//    for (int i = 0; i < this.size(); i++) {
+//      hashCode = 31 * hashCode + this.get(i).hashCode();
+//    }
+//    return hashCode;
+//  }
+  
+  final class JsonValueIterator implements ListIterator<JsonValue> {
+    
+    private int currentIndex;
+    
+    JsonValueIterator() {
+      this(0);
+    }
+    
+    JsonValueIterator(int initial) {
+      this.currentIndex = initial;
+    }
+
+    @Override
+    public boolean hasNext() {
+      return this.currentIndex != jsonNode.size();
+    }
+
+    @Override
+    public JsonValue next() {
+      JsonValue jsonValue = get(this.currentIndex);
+      this.currentIndex += 1;
+      return jsonValue;
+    }
+
+    @Override
+    public boolean hasPrevious() {
+      return this.currentIndex != 0;
+    }
+
+    @Override
+    public JsonValue previous() {
+      JsonValue jsonValue = get(this.currentIndex - 1);
+      this.currentIndex -= 1;
+      return jsonValue;
+    }
+
+    @Override
+    public int nextIndex() {
+      return this.currentIndex;
+    }
+
+    @Override
+    public int previousIndex() {
+      return this.currentIndex - 1;
+    }
+
+    @Override
+    public void remove() {
+      throw new UnsupportedOperationException("remove");
+    }
+
+    @Override
+    public void set(JsonValue e) {
+      throw new UnsupportedOperationException("set");
+    }
+
+    @Override
+    public void add(JsonValue e) {
+      throw new UnsupportedOperationException("add");
+    }
+    
+    @Override
+    public void forEachRemaining(Consumer<? super JsonValue> action) {
+      for (int i = this.currentIndex; i < size(); i++) {
+        action.accept(get(i));
+      }
+      this.currentIndex = size();
+    }
+    
   }
 
 }
