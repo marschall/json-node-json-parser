@@ -206,30 +206,6 @@ public final class JsonNodeJsonParser implements JsonParser {
   }
 
   @Override
-  public Stream<JsonValue> getArrayStream() {
-    if (this.currentState == Event.START_ARRAY) {
-      throw new IllegalStateException("not in start array");
-    }
-    // TODO Auto-generated method stub
-    return JsonParser.super.getArrayStream();
-  }
-
-  @Override
-  public Stream<Entry<String, JsonValue>> getObjectStream() {
-    if (this.currentState == Event.START_OBJECT) {
-      throw new IllegalStateException("not in start object");
-    }
-    // TODO Auto-generated method stub
-    return JsonParser.super.getObjectStream();
-  }
-
-  @Override
-  public Stream<JsonValue> getValueStream() {
-    // TODO Auto-generated method stub
-    return JsonParser.super.getValueStream();
-  }
-
-  @Override
   public void skipArray() {
     if (this.currentNode instanceof ArrayJsonNodeIterator a) {
       this.currentState = Event.END_ARRAY;

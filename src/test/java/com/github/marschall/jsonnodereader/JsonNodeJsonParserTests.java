@@ -3,6 +3,7 @@ package com.github.marschall.jsonnodereader;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -38,6 +39,7 @@ import jakarta.json.JsonStructure;
 import jakarta.json.JsonValue;
 import jakarta.json.JsonValue.ValueType;
 import jakarta.json.stream.JsonGenerator;
+import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
 import jakarta.json.stream.JsonParserFactory;
@@ -373,6 +375,15 @@ class JsonNodeJsonParserTests {
     assertEquals(List.of().hashCode(), jsonArray.hashCode());
     assertEquals("[]", jsonArray.toString());
     assertSame(Event.END_ARRAY, jsonParser.currentEvent());
+
+    JsonLocation location = jsonParser.getLocation();
+    assertNotNull(location);
+    long streamOffset = location.getStreamOffset();
+    assertTrue(streamOffset == -1L || streamOffset > 0L);
+    long lineNumber = location.getLineNumber();
+    assertTrue(lineNumber == -1L || lineNumber > 0L);
+    long columnNumber = location.getColumnNumber();
+    assertTrue(columnNumber == -1L || columnNumber > 0L);
 
     assertSame(Event.START_OBJECT, jsonParser.next());
     JsonObject jsonObject = jsonParser.getObject();

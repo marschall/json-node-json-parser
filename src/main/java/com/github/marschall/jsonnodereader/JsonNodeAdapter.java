@@ -76,6 +76,7 @@ final class JsonNodeAdapter {
     return true;
   }
   
-  // TODO hashCodeSupport
+  // TODO toString support
+  // TODO hashCode support
 
 }

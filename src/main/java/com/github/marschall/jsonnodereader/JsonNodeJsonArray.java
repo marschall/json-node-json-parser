@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
+import java.util.RandomAccess;
 import java.util.function.Consumer;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -15,7 +16,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
-final class JsonNodeJsonArray implements JsonArray {
+final class JsonNodeJsonArray implements JsonArray, RandomAccess {
   
   private final JsonNode jsonNode;
 
