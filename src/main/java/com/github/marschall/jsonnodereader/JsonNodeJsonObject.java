@@ -8,6 +8,7 @@ import java.util.Set;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeType;
 
 import jakarta.json.JsonArray;
 import jakarta.json.JsonNumber;
@@ -52,7 +53,7 @@ final class JsonNodeJsonObject implements JsonObject {
     if (!(value instanceof JsonValue jsonValue)) {
       return false;
     }
-    
+
     Iterator<JsonNode> elements = this.jsonNode.elements();
     while (elements.hasNext()) {
       JsonNode child = (JsonNode) elements.next();
@@ -116,32 +117,67 @@ final class JsonNodeJsonObject implements JsonObject {
 
   @Override
   public JsonArray getJsonArray(String name) {
-    // TODO Auto-generated method stub
-    return null;
+    JsonNode value = this.jsonNode.get(name);
+    if (value == null) {
+      return null;
+    }
+    JsonNodeType nodeType = value.getNodeType();
+    if (nodeType == JsonNodeType.ARRAY) {
+      return new JsonNodeJsonArray(value);
+    }
+    throw new ClassCastException(JsonNodeType.ARRAY + " expected but got: " + nodeType);
   }
 
   @Override
   public JsonObject getJsonObject(String name) {
-    // TODO Auto-generated method stub
-    return null;
+    JsonNode value = this.jsonNode.get(name);
+    if (value == null) {
+      return null;
+    }
+    JsonNodeType nodeType = value.getNodeType();
+    if (nodeType == JsonNodeType.OBJECT) {
+      return new JsonNodeJsonObject(value);
+    }
+    throw new ClassCastException(JsonNodeType.OBJECT + " expected but got: " + nodeType);
   }
 
   @Override
   public JsonNumber getJsonNumber(String name) {
-    // TODO Auto-generated method stub
-    return null;
+    JsonNode value = this.jsonNode.get(name);
+    if (value == null) {
+      return null;
+    }
+    JsonNodeType nodeType = value.getNodeType();
+    if (nodeType == JsonNodeType.NUMBER) {
+      return new JsonNodeJsonNumber(value);
+    }
+    throw new ClassCastException(JsonNodeType.NUMBER + " expected but got: " + nodeType);
   }
 
   @Override
   public JsonString getJsonString(String name) {
-    // TODO Auto-generated method stub
-    return null;
+    JsonNode value = this.jsonNode.get(name);
+    if (value == null) {
+      return null;
+    }
+    JsonNodeType nodeType = value.getNodeType();
+    if (nodeType == JsonNodeType.STRING) {
+      return new JsonNodeJsonString(value);
+    }
+    throw new ClassCastException(JsonNodeType.STRING + " expected but got: " + nodeType);
   }
 
   @Override
   public String getString(String name) {
-    // TODO Auto-generated method stub
-    return null;
+    JsonNode value = this.jsonNode.get(name);
+    if (value == null) {
+      return null;
+    }
+    JsonNodeType nodeType = value.getNodeType();
+    if (nodeType == JsonNodeType.STRING) {
+      return value.textValue();
+    }
+    throw new ClassCastException(JsonNodeType.STRING + " expected but got: " + nodeType);
   }
 
   @Override
@@ -152,8 +188,15 @@ final class JsonNodeJsonObject implements JsonObject {
 
   @Override
   public int getInt(String name) {
-    // TODO Auto-generated method stub
-    return 0;
+    JsonNode value = this.jsonNode.get(name);
+    if (value == null) {
+      throw new NullPointerException();
+    }
+    JsonNodeType nodeType = value.getNodeType();
+    if (nodeType == JsonNodeType.NUMBER) {
+      return value.intValue();
+    }
+    throw new ClassCastException(JsonNodeType.NUMBER + " expected but got: " + nodeType);
   }
 
   @Override

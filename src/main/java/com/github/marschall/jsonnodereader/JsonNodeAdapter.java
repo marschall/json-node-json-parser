@@ -105,7 +105,7 @@ final class JsonNodeAdapter {
     }
     return hashCode;
   }
-  
+
   static int objectHashCode(JsonNode jsonNode) {
     int hashCode = 0;
     for (Entry<String, JsonNode> entry : jsonNode.properties()) {

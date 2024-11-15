@@ -63,7 +63,8 @@ class JsonNodeJsonParserTests {
   
   private static final String EMPTY_STRUCTURES = "[[], {}]";
   
-  private static final String STRUCTURES = "[[null, true, false, 1, \"one\", {\"key\": \"value\"}], {\"key1\": true, \"key2\": false, \"key3\": 1, \"key4\": [\"value4\"]}]";
+  private static final String STRUCTURES = "[[null, true, false, 1, \"one\", {\"key\": \"value\"}], "
+      + "{\"key1\": true, \"key2\": false, \"key3\": 1, \"key4\": [\"value4\"], \"key5\": \"value5\"}]";
 
   static List<Arguments> parsers() {
     return List.of(
@@ -402,6 +403,7 @@ class JsonNodeJsonParserTests {
 
     assertSame(Event.START_ARRAY, jsonParser.next());
     JsonArray jsonArray = assumeDoesNotThrow(UnsupportedOperationException.class, jsonParser::getArray);
+    assertSame(ValueType.ARRAY, jsonArray.getValueType());
     assertEquals(6, jsonArray.size());
     assertFalse(jsonArray.isEmpty());
     assertTrue(jsonArray.contains(Json.createValue(1)));
@@ -439,11 +441,26 @@ class JsonNodeJsonParserTests {
         .build();
     assertEquals(expectedArray, jsonArray);
     assertEquals(jsonArray, expectedArray);
+    assertEquals(expectedArray.hashCode(), jsonArray.hashCode());
     assertSame(Event.END_ARRAY, jsonParser.currentEvent());
 
     assertSame(Event.START_OBJECT, jsonParser.next());
     JsonObject jsonObject = jsonParser.getObject();
-    assertEquals(4, jsonObject.size());
+    assertSame(ValueType.OBJECT, jsonObject.getValueType());
+    assertFalse(jsonObject.isEmpty());
+    assertEquals(5, jsonObject.size());
+    assertTrue(jsonObject.containsKey("key1"));
+    assertFalse(jsonObject.containsKey("key0"));
+    assertFalse(jsonObject.containsKey(new Object()));
+//    assertTrue(jsonObject.containsValue(Json.createValue("value4")));
+//    assertFalse(jsonObject.containsValue(Json.createValue("value5")));
+    assertTrue(jsonObject.getBoolean("key1"));
+    assertFalse(jsonObject.getBoolean("key2"));
+    assertEquals(1, jsonObject.getInt("key3"));
+    assertEquals(Json.createValue(1), jsonObject.getJsonNumber("key3"));
+    assertEquals(Json.createArrayBuilder().add("value4").build(), jsonObject.getJsonArray("key4"));
+    assertEquals(Json.createValue("value5"), jsonObject.getJsonString("key5"));
+    assertEquals("value5", jsonObject.getString("key5"));
     assertSame(Event.END_OBJECT, jsonParser.currentEvent());
 
     assertSame(Event.END_ARRAY, jsonParser.next());

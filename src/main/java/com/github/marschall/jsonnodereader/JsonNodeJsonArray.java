@@ -188,7 +188,7 @@ final class JsonNodeJsonArray implements JsonArray, RandomAccess {
     if (nodeType == JsonNodeType.OBJECT) {
       return new JsonNodeJsonObject(value);
     }
-    throw new ClassCastException(JsonNodeType.OBJECT + " expected but got: " + jsonNode);
+    throw new ClassCastException(JsonNodeType.OBJECT + " expected but got: " + nodeType);
   }
 
   @Override
@@ -198,7 +198,7 @@ final class JsonNodeJsonArray implements JsonArray, RandomAccess {
     if (nodeType == JsonNodeType.ARRAY) {
       return new JsonNodeJsonArray(value);
     }
-    throw new ClassCastException(JsonNodeType.ARRAY + " expected but got: " + jsonNode);
+    throw new ClassCastException(JsonNodeType.ARRAY + " expected but got: " + nodeType);
   }
 
   @Override
@@ -208,7 +208,7 @@ final class JsonNodeJsonArray implements JsonArray, RandomAccess {
     if (nodeType == JsonNodeType.NUMBER) {
       return new JsonNodeJsonNumber(value);
     }
-    throw new ClassCastException(JsonNodeType.NUMBER + " expected but got: " + jsonNode);
+    throw new ClassCastException(JsonNodeType.NUMBER + " expected but got: " + nodeType);
   }
 
   @Override
@@ -218,7 +218,7 @@ final class JsonNodeJsonArray implements JsonArray, RandomAccess {
     if (nodeType == JsonNodeType.STRING) {
       return new JsonNodeJsonString(value);
     }
-    throw new ClassCastException(JsonNodeType.STRING + " expected but got: " + jsonNode);
+    throw new ClassCastException(JsonNodeType.STRING + " expected but got: " + nodeType);
   }
 
   @Override
@@ -234,7 +234,7 @@ final class JsonNodeJsonArray implements JsonArray, RandomAccess {
     if (nodeType == JsonNodeType.STRING) {
       return value.textValue();
     }
-    throw new ClassCastException(JsonNodeType.STRING + " expected but got: " + jsonNode);
+    throw new ClassCastException(JsonNodeType.STRING + " expected but got: " + nodeType);
   }
 
   @Override
@@ -250,7 +250,7 @@ final class JsonNodeJsonArray implements JsonArray, RandomAccess {
     if (nodeType == JsonNodeType.NUMBER) {
       return value.intValue();
     }
-    throw new ClassCastException(JsonNodeType.NUMBER + " expected but got: " + jsonNode);
+    throw new ClassCastException(JsonNodeType.NUMBER + " expected but got: " + nodeType);
   }
 
   @Override
@@ -266,7 +266,7 @@ final class JsonNodeJsonArray implements JsonArray, RandomAccess {
     if (nodeType == JsonNodeType.BOOLEAN) {
       return value.booleanValue();
     }
-    throw new ClassCastException(JsonNodeType.BOOLEAN + " expected but got: " + jsonNode);
+    throw new ClassCastException(JsonNodeType.BOOLEAN + " expected but got: " + nodeType);
   }
 
   @Override
