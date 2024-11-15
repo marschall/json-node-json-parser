@@ -239,8 +239,16 @@ final class JsonNodeJsonArray implements JsonArray, RandomAccess {
 
   @Override
   public String getString(int index, String defaultValue) {
-    // TODO Auto-generated method stub
-    return null;
+    if (index < 0 || index >= this.size()) {
+      return defaultValue;
+    }
+    JsonNode value = this.jsonNode.get(index);
+    JsonNodeType nodeType = value.getNodeType();
+    if (nodeType == JsonNodeType.STRING) {
+      return value.textValue();
+    } else {
+      return defaultValue;
+    }
   }
 
   @Override
@@ -255,8 +263,16 @@ final class JsonNodeJsonArray implements JsonArray, RandomAccess {
 
   @Override
   public int getInt(int index, int defaultValue) {
-    // TODO Auto-generated method stub
-    return 0;
+    if (index < 0 || index >= this.size()) {
+      return defaultValue;
+    }
+    JsonNode value = this.jsonNode.get(index);
+    JsonNodeType nodeType = value.getNodeType();
+    if (nodeType == JsonNodeType.NUMBER) {
+      return value.intValue();
+    } else {
+      return defaultValue;
+    }
   }
 
   @Override
@@ -271,8 +287,16 @@ final class JsonNodeJsonArray implements JsonArray, RandomAccess {
 
   @Override
   public boolean getBoolean(int index, boolean defaultValue) {
-    // TODO Auto-generated method stub
-    return false;
+    if (index < 0 || index >= this.size()) {
+      return defaultValue;
+    }
+    JsonNode value = this.jsonNode.get(index);
+    JsonNodeType nodeType = value.getNodeType();
+    if (nodeType == JsonNodeType.BOOLEAN) {
+      return value.booleanValue();
+    } else {
+      return defaultValue;
+    }
   }
 
   @Override

@@ -182,8 +182,16 @@ final class JsonNodeJsonObject implements JsonObject {
 
   @Override
   public String getString(String name, String defaultValue) {
-    // TODO Auto-generated method stub
-    return null;
+    JsonNode value = this.jsonNode.get(name);
+    if (value == null) {
+      return defaultValue;
+    }
+    JsonNodeType nodeType = value.getNodeType();
+    if (nodeType == JsonNodeType.STRING) {
+      return value.textValue();
+    } else {
+      return defaultValue;
+    }
   }
 
   @Override
@@ -201,25 +209,38 @@ final class JsonNodeJsonObject implements JsonObject {
 
   @Override
   public int getInt(String name, int defaultValue) {
-    // TODO Auto-generated method stub
-    return 0;
+    JsonNode value = this.jsonNode.get(name);
+    if (value == null) {
+      return defaultValue;
+    }
+    JsonNodeType nodeType = value.getNodeType();
+    if (nodeType == JsonNodeType.NUMBER) {
+      return value.intValue();
+    } else {
+      return defaultValue;
+    }
   }
 
   @Override
   public boolean getBoolean(String name) {
-    JsonNode child = this.jsonNode.get(name);
-    if (child.isBoolean()) {
-      return child.booleanValue();
+    JsonNode value = this.jsonNode.get(name);
+    JsonNodeType nodeType = value.getNodeType();
+    if (nodeType == JsonNodeType.BOOLEAN) {
+      return value.booleanValue();
     } else {
-      throw new ClassCastException();
+      throw new ClassCastException(JsonNodeType.NUMBER + " expected but got: " + nodeType);
     }
   }
 
   @Override
   public boolean getBoolean(String name, boolean defaultValue) {
-    JsonNode child = this.jsonNode.get(name);
-    if (child != null && child.isBoolean()) {
-      return child.booleanValue();
+    JsonNode value = this.jsonNode.get(name);
+    if (value == null) {
+      return defaultValue;
+    }
+    JsonNodeType nodeType = value.getNodeType();
+    if (nodeType == JsonNodeType.BOOLEAN) {
+      return value.booleanValue();
     } else {
       return defaultValue;
     }

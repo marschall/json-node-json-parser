@@ -64,7 +64,7 @@ class JsonNodeJsonParserTests {
   private static final String EMPTY_STRUCTURES = "[[], {}]";
   
   private static final String STRUCTURES = "[[null, true, false, 1, \"one\", {\"key\": \"value\"}], "
-      + "{\"key1\": true, \"key2\": false, \"key3\": 1, \"key4\": [\"value4\"], \"key5\": \"value5\"}]";
+      + "{\"key1\": true, \"key2\": false, \"key3\": 1, \"key4\": [\"value4\"], \"key5\": \"value5\", \"key6\": null}]";
 
   static List<Arguments> parsers() {
     return List.of(
@@ -421,7 +421,28 @@ class JsonNodeJsonParserTests {
     assertTrue(jsonArray.isNull(0));
     assertFalse(jsonArray.isNull(1));
     assertTrue(jsonArray.getBoolean(1));
+    assertTrue(jsonArray.getBoolean(1, false));
     assertFalse(jsonArray.getBoolean(2));
+    assertFalse(jsonArray.getBoolean(2, true));
+
+    assertFalse(jsonArray.getBoolean(-1, false));
+    assertTrue(jsonArray.getBoolean(-1, true));
+    assertFalse(jsonArray.getBoolean(3, false));
+    assertTrue(jsonArray.getBoolean(3, true));
+    assertFalse(jsonArray.getBoolean(6, false));
+    assertTrue(jsonArray.getBoolean(6, true));
+
+    assertEquals(22, jsonArray.getInt(-1, 22));
+    assertEquals(22, jsonArray.getInt(0, 22));
+    assertEquals(22, jsonArray.getInt(1, 22));
+    assertEquals(1, jsonArray.getInt(3, 22));
+    assertEquals(22, jsonArray.getInt(6, 22));
+
+    assertEquals("two", jsonArray.getString(-1, "two"));
+    assertEquals("two", jsonArray.getString(0, "two"));
+    assertEquals("two", jsonArray.getString(1, "two"));
+    assertEquals("one", jsonArray.getString(4, "two"));
+    assertEquals("two", jsonArray.getString(6, "two"));
 
     assertEquals(1, jsonArray.getInt(3));
     JsonNumber jsonNumber = jsonArray.getJsonNumber(3);
@@ -448,7 +469,7 @@ class JsonNodeJsonParserTests {
     JsonObject jsonObject = jsonParser.getObject();
     assertSame(ValueType.OBJECT, jsonObject.getValueType());
     assertFalse(jsonObject.isEmpty());
-    assertEquals(5, jsonObject.size());
+    assertEquals(6, jsonObject.size());
     assertTrue(jsonObject.containsKey("key1"));
     assertFalse(jsonObject.containsKey("key0"));
     assertFalse(jsonObject.containsKey(new Object()));
@@ -461,6 +482,31 @@ class JsonNodeJsonParserTests {
     assertEquals(Json.createArrayBuilder().add("value4").build(), jsonObject.getJsonArray("key4"));
     assertEquals(Json.createValue("value5"), jsonObject.getJsonString("key5"));
     assertEquals("value5", jsonObject.getString("key5"));
+
+    assertFalse(jsonObject.isNull("key1"));
+    assertTrue(jsonObject.isNull("key6"));
+    assertThrows(NullPointerException.class, () -> jsonObject.isNull("key7"));
+
+    assertTrue(jsonObject.getBoolean("key1", false));
+    assertTrue(jsonObject.getBoolean("key1", true));
+    assertFalse(jsonObject.getBoolean("key2", false));
+    assertFalse(jsonObject.getBoolean("key2", true));
+
+    assertFalse(jsonObject.getBoolean("n/a", false));
+    assertTrue(jsonObject.getBoolean("n/a", true));
+    assertFalse(jsonObject.getBoolean("key3", false));
+    assertTrue(jsonObject.getBoolean("key3", true));
+
+    assertEquals(22, jsonObject.getInt("n/a", 22));
+    assertEquals(22, jsonObject.getInt("key1", 22));
+    assertEquals(22, jsonObject.getInt("key2", 22));
+    assertEquals(1, jsonObject.getInt("key3", 22));
+
+    assertEquals("two", jsonObject.getString("n/a", "two"));
+    assertEquals("two", jsonObject.getString("key1", "two"));
+    assertEquals("two", jsonObject.getString("key2", "two"));
+    assertEquals("value5", jsonObject.getString("key5", "value4"));
+
     assertSame(Event.END_OBJECT, jsonParser.currentEvent());
 
     assertSame(Event.END_ARRAY, jsonParser.next());
