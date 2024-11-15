@@ -2,7 +2,6 @@ package com.github.marschall.jsonnodereader;
 
 import java.util.Map.Entry;
 
-import com.fasterxml.jackson.core.io.JsonStringEncoder;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -78,7 +77,7 @@ final class JsonNodeAdapter {
     for (int i = 0; i < jsonNode.size(); i++) {
       JsonNode element = jsonNode.get(i);
       JsonValue value = jsonArray.get(i);
-      if (valueEquals(element, value)) {
+      if (!valueEquals(element, value)) {
         return false;
       }
     }

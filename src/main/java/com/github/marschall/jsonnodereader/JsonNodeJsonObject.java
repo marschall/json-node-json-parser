@@ -1,6 +1,7 @@
 package com.github.marschall.jsonnodereader;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -40,20 +41,39 @@ final class JsonNodeJsonObject implements JsonObject {
 
   @Override
   public boolean containsKey(Object key) {
-    // TODO Auto-generated method stub
-    return false;
+    if (!(key instanceof String s)) {
+      return false;
+    }
+    return this.jsonNode.get(s) != null;
   }
 
   @Override
   public boolean containsValue(Object value) {
-    // TODO Auto-generated method stub
+    if (!(value instanceof JsonValue jsonValue)) {
+      return false;
+    }
+    
+    Iterator<JsonNode> elements = this.jsonNode.elements();
+    while (elements.hasNext()) {
+      JsonNode child = (JsonNode) elements.next();
+      if (JsonNodeAdapter.valueEquals(child, jsonValue)) {
+        return true;
+      }
+    }
     return false;
   }
 
   @Override
   public JsonValue get(Object key) {
-    // TODO Auto-generated method stub
-    return null;
+    if (!(key instanceof String s)) {
+      return null;
+    }
+    JsonNode child = this.jsonNode.get(s);
+    if (child != null) {
+      return JsonNodeAdapter.adapt(child);
+    } else {
+      return null;
+    }
   }
 
   @Override
