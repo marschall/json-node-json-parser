@@ -86,11 +86,13 @@ final class JsonNodeJsonNumber implements JsonNumber {
   
   @Override
   public int hashCode() {
+    // BigDecimal allocation could be avoided for int/log
     return bigDecimalValue().hashCode();
   }
   
   @Override
   public String toString() {
+    // BigDecimal allocation could be avoided for int/log
     return bigDecimalValue().toString();
   }
 

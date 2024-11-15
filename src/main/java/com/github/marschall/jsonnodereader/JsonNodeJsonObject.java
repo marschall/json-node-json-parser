@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import jakarta.json.JsonArray;
@@ -177,12 +178,18 @@ final class JsonNodeJsonObject implements JsonObject {
     return JsonNodeAdapter.objectEquals(this.jsonNode, other);
   }
 
-//  @Override
-//  public int hashCode() {
-//    int h = 0;
-//    for (Entry<K, V> entry : entrySet())
-//        h += entry.hashCode();
-//    return h;
-//  }
+  @Override
+  public int hashCode() {
+    return JsonNodeAdapter.objectHashCode(this.jsonNode);
+  }
+
+  @Override
+  public String toString() {
+    try {
+      return JsonNodeAdapter.OBJECT_MAPPER.writeValueAsString(this.jsonNode);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("could not serialize JsonNode", e);
+    }
+  }
 
 }

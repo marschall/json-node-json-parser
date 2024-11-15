@@ -8,6 +8,7 @@ import java.util.Objects;
 import java.util.RandomAccess;
 import java.util.function.Consumer;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import jakarta.json.JsonArray;
@@ -262,15 +263,20 @@ final class JsonNodeJsonArray implements JsonArray, RandomAccess {
     return JsonNodeAdapter.arrayEquals(this.jsonNode, other);
   }
 
-//  @Override
-//  public int hashCode() {
-//    int hashCode = 1;
-//    for (int i = 0; i < this.size(); i++) {
-//      hashCode = 31 * hashCode + this.get(i).hashCode();
-//    }
-//    return hashCode;
-//  }
-  
+  @Override
+  public int hashCode() {
+    return JsonNodeAdapter.arrayHashCode(this.jsonNode);
+  }
+
+  @Override
+  public String toString() {
+    try {
+      return JsonNodeAdapter.OBJECT_MAPPER.writeValueAsString(this.jsonNode);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("could not serialize JsonNode", e);
+    }
+  }
+
   final class JsonValueIterator implements ListIterator<JsonValue> {
     
     private int currentIndex;

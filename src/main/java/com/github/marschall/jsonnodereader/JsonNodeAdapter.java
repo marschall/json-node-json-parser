@@ -2,15 +2,24 @@ package com.github.marschall.jsonnodereader;
 
 import java.util.Map.Entry;
 
+import com.fasterxml.jackson.core.io.JsonStringEncoder;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 
 import jakarta.json.JsonArray;
 import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
+import jakarta.json.JsonValue.ValueType;
 
 final class JsonNodeAdapter {
+
+  static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder()
+      .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+      .build();
 
   private JsonNodeAdapter() {
     throw new AssertionError("not instantiable");
@@ -27,7 +36,7 @@ final class JsonNodeAdapter {
       default -> throw new IllegalArgumentException("Unexpected node type: " + jsonNode.getNodeType());
     };
   }
-  
+
   static boolean valueEquals(JsonNode jsonNode, JsonValue jsonValue) {
     return switch (jsonValue.getValueType()) {
       case ARRAY -> jsonNode.isArray() && arrayEquals(jsonNode, (JsonArray) jsonValue);
@@ -75,8 +84,36 @@ final class JsonNodeAdapter {
     }
     return true;
   }
+
+  static int hashCode(JsonNode jsonNode) {
+    return switch (jsonNode.getNodeType()) {
+      case ARRAY -> arrayHashCode(jsonNode);
+      case BOOLEAN -> jsonNode.booleanValue() ? ValueType.TRUE.hashCode() : ValueType.FALSE.hashCode();
+      case NULL -> ValueType.NULL.hashCode();
+      // BigDecimal allocation could be avoided for int/log
+      case NUMBER -> jsonNode.decimalValue().hashCode();
+      case OBJECT -> objectHashCode(jsonNode);
+      case STRING -> jsonNode.hashCode();
+      default -> throw new IllegalArgumentException("Unexpected node type: " + jsonNode.getNodeType());
+    };
+  }
+
+  static int arrayHashCode(JsonNode jsonNode) {
+    int hashCode = 1;
+    for (int i = 0; i < jsonNode.size(); i++) {
+      JsonNode child = jsonNode.get(i);
+      hashCode = 31 * hashCode + hashCode(child);
+    }
+    return hashCode;
+  }
   
-  // TODO toString support
-  // TODO hashCode support
+  static int objectHashCode(JsonNode jsonNode) {
+    int hashCode = 0;
+    for (Entry<String, JsonNode> entry : jsonNode.properties()) {
+      int entryHash =  entry.getKey().hashCode() ^ hashCode(entry.getValue());
+      hashCode += entryHash;
+    }
+    return hashCode;
+  }
 
 }
