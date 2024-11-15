@@ -9,11 +9,11 @@
   <inceptionYear>2024</inceptionYear>
   <description>A Jakarta JsonParser that operates on a Jackson JsonNode.</description>
 
-  <url>https://github.com/marschall/json-node-reader</url>
+  <url>https://github.com/marschall/json-node-json-parser</url>
 
   <scm>
-    <connection>scm:git:git@github.com:marschall/json-node-reader.git</connection>
-    <developerConnection>scm:git:git@github.com:marschall/json-node-reader.git</developerConnection>
+    <connection>scm:git:git@github.com:marschall/json-node-json-parser.git</connection>
+    <developerConnection>scm:git:git@github.com:marschall/json-node-json-parser.git</developerConnection>
     <url>${project.url}</url>
     <tag>HEAD</tag>
   </scm>
@@ -73,7 +73,7 @@
   </dependencies>
 
   <issueManagement>
-    <url>https://github.com/marschall/json-node-reader/issues</url>
+    <url>https://github.com/marschall/json-node-json-parser/issues</url>
     <system>GitHub Issues</system>
   </issueManagement>
 
