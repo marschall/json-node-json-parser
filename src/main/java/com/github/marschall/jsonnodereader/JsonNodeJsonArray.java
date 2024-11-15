@@ -10,6 +10,7 @@ import java.util.function.Consumer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeType;
 
 import jakarta.json.JsonArray;
 import jakarta.json.JsonNumber;
@@ -182,26 +183,42 @@ final class JsonNodeJsonArray implements JsonArray, RandomAccess {
 
   @Override
   public JsonObject getJsonObject(int index) {
-    // TODO Auto-generated method stub
-    return null;
+    JsonNode value = this.jsonNode.get(Objects.checkIndex(index, this.size()));
+    JsonNodeType nodeType = value.getNodeType();
+    if (nodeType == JsonNodeType.OBJECT) {
+      return new JsonNodeJsonObject(value);
+    }
+    throw new ClassCastException(JsonNodeType.OBJECT + " expected but got: " + jsonNode);
   }
 
   @Override
   public JsonArray getJsonArray(int index) {
-    // TODO Auto-generated method stub
-    return null;
+    JsonNode value = this.jsonNode.get(Objects.checkIndex(index, this.size()));
+    JsonNodeType nodeType = value.getNodeType();
+    if (nodeType == JsonNodeType.ARRAY) {
+      return new JsonNodeJsonArray(value);
+    }
+    throw new ClassCastException(JsonNodeType.ARRAY + " expected but got: " + jsonNode);
   }
 
   @Override
   public JsonNumber getJsonNumber(int index) {
-    // TODO Auto-generated method stub
-    return null;
+    JsonNode value = this.jsonNode.get(Objects.checkIndex(index, this.size()));
+    JsonNodeType nodeType = value.getNodeType();
+    if (nodeType == JsonNodeType.NUMBER) {
+      return new JsonNodeJsonNumber(value);
+    }
+    throw new ClassCastException(JsonNodeType.NUMBER + " expected but got: " + jsonNode);
   }
 
   @Override
   public JsonString getJsonString(int index) {
-    // TODO Auto-generated method stub
-    return null;
+    JsonNode value = this.jsonNode.get(Objects.checkIndex(index, this.size()));
+    JsonNodeType nodeType = value.getNodeType();
+    if (nodeType == JsonNodeType.STRING) {
+      return new JsonNodeJsonString(value);
+    }
+    throw new ClassCastException(JsonNodeType.STRING + " expected but got: " + jsonNode);
   }
 
   @Override
@@ -212,8 +229,12 @@ final class JsonNodeJsonArray implements JsonArray, RandomAccess {
 
   @Override
   public String getString(int index) {
-    // TODO Auto-generated method stub
-    return null;
+    JsonNode value = this.jsonNode.get(Objects.checkIndex(index, this.size()));
+    JsonNodeType nodeType = value.getNodeType();
+    if (nodeType == JsonNodeType.STRING) {
+      return value.textValue();
+    }
+    throw new ClassCastException(JsonNodeType.STRING + " expected but got: " + jsonNode);
   }
 
   @Override
@@ -224,8 +245,12 @@ final class JsonNodeJsonArray implements JsonArray, RandomAccess {
 
   @Override
   public int getInt(int index) {
-    // TODO Auto-generated method stub
-    return 0;
+    JsonNode value = this.jsonNode.get(Objects.checkIndex(index, this.size()));
+    JsonNodeType nodeType = value.getNodeType();
+    if (nodeType == JsonNodeType.NUMBER) {
+      return value.intValue();
+    }
+    throw new ClassCastException(JsonNodeType.NUMBER + " expected but got: " + jsonNode);
   }
 
   @Override
@@ -236,8 +261,12 @@ final class JsonNodeJsonArray implements JsonArray, RandomAccess {
 
   @Override
   public boolean getBoolean(int index) {
-    // TODO Auto-generated method stub
-    return false;
+    JsonNode value = this.jsonNode.get(Objects.checkIndex(index, this.size()));
+    JsonNodeType nodeType = value.getNodeType();
+    if (nodeType == JsonNodeType.BOOLEAN) {
+      return value.booleanValue();
+    }
+    throw new ClassCastException(JsonNodeType.BOOLEAN + " expected but got: " + jsonNode);
   }
 
   @Override

@@ -415,7 +415,20 @@ class JsonNodeJsonParserTests {
     assertEquals(-1, jsonArray.lastIndexOf(Json.createValue(2)));
     assertEquals(-1, jsonArray.indexOf("2"));
     assertEquals(-1, jsonArray.lastIndexOf("2"));
-    
+
+    assertTrue(jsonArray.isNull(0));
+    assertFalse(jsonArray.isNull(1));
+    assertTrue(jsonArray.getBoolean(1));
+    assertFalse(jsonArray.getBoolean(2));
+
+    assertEquals(1, jsonArray.getInt(3));
+    JsonNumber jsonNumber = jsonArray.getJsonNumber(3);
+    assertEquals(Json.createValue(1), jsonNumber);
+
+    assertEquals("one", jsonArray.getString(4));
+    JsonString jsonString = jsonArray.getJsonString(4);
+    assertEquals(Json.createValue("one"), jsonString);
+
     JsonArray expectedArray = Json.createArrayBuilder()
         .addNull()
         .add(true)
