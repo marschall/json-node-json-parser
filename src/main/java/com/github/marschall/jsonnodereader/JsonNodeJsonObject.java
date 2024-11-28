@@ -171,7 +171,7 @@ final class JsonNodeJsonObject implements JsonObject {
   public String getString(String name) {
     JsonNode value = this.jsonNode.get(name);
     if (value == null) {
-      return null;
+      throw new NullPointerException();
     }
     JsonNodeType nodeType = value.getNodeType();
     if (nodeType == JsonNodeType.STRING) {
@@ -224,6 +224,9 @@ final class JsonNodeJsonObject implements JsonObject {
   @Override
   public boolean getBoolean(String name) {
     JsonNode value = this.jsonNode.get(name);
+    if (value == null) {
+      throw new NullPointerException();
+    }
     JsonNodeType nodeType = value.getNodeType();
     if (nodeType == JsonNodeType.BOOLEAN) {
       return value.booleanValue();
