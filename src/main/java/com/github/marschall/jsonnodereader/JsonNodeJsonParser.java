@@ -207,7 +207,7 @@ public final class JsonNodeJsonParser implements JsonParser {
 
   @Override
   public void skipArray() {
-    if (this.currentNode instanceof ArrayJsonNodeIterator a) {
+    if (this.currentNode instanceof ArrayJsonNodeIterator) {
       this.currentState = Event.END_ARRAY;
       // #transition() will pop the stack 
     }
@@ -215,7 +215,7 @@ public final class JsonNodeJsonParser implements JsonParser {
 
   @Override
   public void skipObject() {
-    if (this.currentNode instanceof ObjectJsonNodeIterator o) {
+    if (this.currentNode instanceof ObjectJsonNodeIterator) {
       this.currentState = Event.END_OBJECT;
       // #transition() will pop the stack 
     }
@@ -224,7 +224,6 @@ public final class JsonNodeJsonParser implements JsonParser {
   @Override
   public void close() {
     // no-op for now
-
   }
 
   sealed interface JsonNodeIterator {

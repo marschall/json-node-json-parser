@@ -1,5 +1,6 @@
 package com.github.marschall.jsonnodereader;
 
+import java.lang.reflect.Array;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -63,14 +64,35 @@ final class JsonNodeJsonArray implements JsonArray, RandomAccess {
   
   @Override
   public Object[] toArray() {
-    // TODO Auto-generated method stub
-    return null;
+    int size = this.jsonNode.size();
+    Object[] array = new Object[size];
+    for (int i = 0; i < size; i++) {
+      JsonNode value = this.jsonNode.get(i);
+      JsonValue jsonValue = JsonNodeAdapter.adapt(value);
+      array[i] = jsonValue;
+    }
+    return array;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public <T> T[] toArray(T[] a) {
-    // TODO Auto-generated method stub
-    return null;
+    int size = this.jsonNode.size();
+    T[] array;
+    if (a.length < size) {
+      array = (T[]) Array.newInstance(a.getClass().getComponentType(), size);
+    } else {
+      array = a;
+      if (a.length > size) {
+        array[size] = null;
+      }
+    }
+    for (int i = 0; i < size; i++) {
+      JsonNode value = this.jsonNode.get(i);
+      JsonValue jsonValue = JsonNodeAdapter.adapt(value);
+      array[i] = (T) jsonValue;
+    }
+    return array;
   }
 
   @Override
