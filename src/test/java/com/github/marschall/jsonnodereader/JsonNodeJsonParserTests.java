@@ -60,7 +60,7 @@ class JsonNodeJsonParserTests {
 
   private static final String NUMBERS = "[1, 1.0, 2147483647, -2147483648, 2147483648, -2147483649, 9223372036854775807, -9223372036854775808, 9223372036854775808, -9223372036854775809, 1.1]";
 
-  private static final String LITERALS = "[null, true, false, \"hello\\\"world\"]";
+  private static final String LITERALS = "[null, true, false, \"hello\\\"world\", 1]";
   
   private static final String EMPTY_STRUCTURES = "[[], {}]";
   
@@ -359,9 +359,21 @@ class JsonNodeJsonParserTests {
     assertEquals("hello\"world", jsonString.getChars().toString());
     assertEquals("hello\"world".hashCode(), jsonString.hashCode());
     assertNotEquals(null, jsonString);
+    assertEquals(jsonString, jsonString);
+    assertNotEquals(jsonString, "hello\"world");
     assertEquals(Json.createValue("hello\"world"), jsonString);
     assertEquals(jsonString, Json.createValue("hello\"world"));
     assertEquals("\"hello\\\"world\"", jsonString.toString());
+
+    assertSame(Event.VALUE_NUMBER, jsonParser.next());
+    value = jsonParser.getValue();
+    assertSame(ValueType.NUMBER, value.getValueType());
+    JsonNumber jsonNumber = (JsonNumber) value;
+    assertEquals(jsonNumber, jsonNumber);
+    assertNotEquals(jsonNumber, 1);
+    assertNotEquals(jsonNumber, 1L);
+    assertNotEquals(jsonNumber, BigDecimal.ONE);
+    assertEquals(jsonNumber, Json.createValue(1));
 
     assertSame(Event.END_ARRAY, jsonParser.next());
     assertFalse(jsonParser.hasNext());
