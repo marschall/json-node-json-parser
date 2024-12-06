@@ -1,7 +1,9 @@
 package com.github.marschall.jsonnodereader;
 
 import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -199,8 +201,8 @@ final class JsonNodeJsonArray implements JsonArray, RandomAccess {
 
   @Override
   public List<JsonValue> subList(int fromIndex, int toIndex) {
-    // TODO Auto-generated method stub
-    return null;
+    // not optimized
+    return Collections.unmodifiableList(this).subList(fromIndex, toIndex);
   }
 
   @Override
@@ -245,8 +247,15 @@ final class JsonNodeJsonArray implements JsonArray, RandomAccess {
 
   @Override
   public <T extends JsonValue> List<T> getValuesAs(Class<T> clazz) {
-    // TODO Auto-generated method stub
-    return null;
+    // not optimized
+    int size = this.jsonNode.size();
+    List<JsonValue> list = new ArrayList<>(size);
+    for (int i = 0; i < size; i++) {
+      JsonNode value = this.jsonNode.get(i);
+      JsonValue jsonValue = JsonNodeAdapter.adapt(value);
+      list.add(jsonValue);
+    }
+    return (List<T>) list;
   }
 
   @Override

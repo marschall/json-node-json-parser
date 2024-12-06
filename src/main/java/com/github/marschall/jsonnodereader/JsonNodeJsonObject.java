@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -99,20 +100,27 @@ final class JsonNodeJsonObject implements JsonObject {
 
   @Override
   public Set<String> keySet() {
-    // TODO Auto-generated method stub
-    return null;
+    // not optimized
+    return this.jsonNode.properties().stream()
+      .map(Entry::getKey)
+      .collect(Collectors.toSet());
   }
 
   @Override
   public Collection<JsonValue> values() {
-    // TODO Auto-generated method stub
-    return null;
+    // not optimized
+    return this.jsonNode.properties().stream()
+      .map(Entry::getValue)
+      .map(JsonNodeAdapter::adapt)
+      .toList();
   }
 
   @Override
   public Set<Entry<String, JsonValue>> entrySet() {
-    // TODO Auto-generated method stub
-    return null;
+    // not optimized
+    return this.jsonNode.properties().stream()
+      .map(entry -> Map.entry(entry.getKey(), JsonNodeAdapter.adapt(entry.getValue())))
+      .collect(Collectors.toSet());
   }
 
   @Override
