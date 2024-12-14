@@ -153,7 +153,11 @@ class JsonNodeJsonParserTests {
       assertSame(Event.START_ARRAY, jsonParser.next());
       JsonArray array = assumeSupported(jsonParser::getArray);
       assertThrows(UnsupportedOperationException.class, () -> array.add(Json.createValue(42)));
+      assertThrows(UnsupportedOperationException.class, () -> array.add(1, Json.createValue(42)));
+      assertThrows(UnsupportedOperationException.class, () -> array.addAll(List.of(Json.createValue(42))));
+      assertThrows(UnsupportedOperationException.class, () -> array.addAll(1, List.of(Json.createValue(42))));
       assertThrows(UnsupportedOperationException.class, () -> array.set(0, Json.createValue(42)));
+      assertThrows(UnsupportedOperationException.class, () -> array.clear());
       assertThrows(UnsupportedOperationException.class, () -> array.remove(0));
       assertThrows(UnsupportedOperationException.class, () -> array.remove(Json.createValue("value")));
       assertThrows(UnsupportedOperationException.class, () -> array.removeAll(List.of(Json.createValue("value"))));
