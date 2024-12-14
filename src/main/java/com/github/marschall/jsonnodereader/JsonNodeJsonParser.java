@@ -94,14 +94,14 @@ public final class JsonNodeJsonParser implements JsonParser {
       this.pushNodeIfStart();
     }
   }
-  
+
   private void pushNodeIfStart() {
     if (this.currentState == Event.START_ARRAY) {
       this.nodeStack.push(this.currentNode);
-      this.currentNode = new ArrayJsonNodeIterator(this.currentNode.getJsonValue());
+      this.currentNode = new ArrayJsonNodeIterator(this.currentNode.getJsonNode());
     } else if (this.currentState == Event.START_OBJECT) {
       this.nodeStack.push(this.currentNode);
-      this.currentNode = new ObjectJsonNodeIterator(this.currentNode.getJsonValue());
+      this.currentNode = new ObjectJsonNodeIterator(this.currentNode.getJsonNode());
     }
   }
 
@@ -109,7 +109,7 @@ public final class JsonNodeJsonParser implements JsonParser {
   public String getString() {
     return switch (this.currentState) {
       case KEY_NAME -> ((ObjectJsonNodeIterator) this.currentNode).getKey();
-      case VALUE_STRING, VALUE_NUMBER -> this.currentNode.getJsonValue().asText();
+      case VALUE_STRING, VALUE_NUMBER -> this.currentNode.getJsonNode().asText();
       default -> throw new IllegalStateException("getString() not supported in current state");
     };
   }
@@ -119,7 +119,7 @@ public final class JsonNodeJsonParser implements JsonParser {
     if (this.currentState != Event.VALUE_NUMBER) {
       throw new IllegalStateException("current state is not a number");
     }
-    return this.currentNode.getJsonValue().isIntegralNumber();
+    return this.currentNode.getJsonNode().isIntegralNumber();
   }
 
   @Override
@@ -127,7 +127,7 @@ public final class JsonNodeJsonParser implements JsonParser {
     if (this.currentState != Event.VALUE_NUMBER) {
       throw new IllegalStateException("current state is not a number");
     }
-    return this.currentNode.getJsonValue().intValue();
+    return this.currentNode.getJsonNode().intValue();
   }
 
   @Override
@@ -135,7 +135,7 @@ public final class JsonNodeJsonParser implements JsonParser {
     if (this.currentState != Event.VALUE_NUMBER) {
       throw new IllegalStateException("current state is not a number");
     }
-    return this.currentNode.getJsonValue().longValue();
+    return this.currentNode.getJsonNode().longValue();
   }
 
   @Override
@@ -143,7 +143,7 @@ public final class JsonNodeJsonParser implements JsonParser {
     if (this.currentState != Event.VALUE_NUMBER) {
       throw new IllegalStateException("current state is not a number");
     }
-    return this.currentNode.getJsonValue().decimalValue();
+    return this.currentNode.getJsonNode().decimalValue();
   }
 
   @Override
@@ -161,12 +161,12 @@ public final class JsonNodeJsonParser implements JsonParser {
     if (this.currentState != Event.START_OBJECT) {
       throw new IllegalStateException("not in start object");
     }
+    JsonNode node = this.currentNode.getContainerNode();
     JsonObject object;
-    JsonNode parentValue = this.nodeStack.peek().getJsonValue();
-    if (parentValue.isEmpty()) {
+    if (node.isEmpty()) {
       object = JsonValue.EMPTY_JSON_OBJECT;
     } else {
-      object = new JsonNodeJsonObject(parentValue);
+      object = new JsonNodeJsonObject(node);
     }
     // #transition() will pop the stack 
     this.currentState = Event.END_OBJECT;
@@ -179,8 +179,8 @@ public final class JsonNodeJsonParser implements JsonParser {
       case END_OBJECT, END_ARRAY -> throw new IllegalStateException("in state end");
       case START_ARRAY -> this.getArray();
       case START_OBJECT -> this.getObject();
-      case KEY_NAME, VALUE_STRING -> new JsonNodeJsonString(this.currentNode.getJsonValue());
-      case VALUE_NUMBER -> new JsonNodeJsonNumber(this.currentNode.getJsonValue());
+      case KEY_NAME, VALUE_STRING -> new JsonNodeJsonString(this.currentNode.getJsonNode());
+      case VALUE_NUMBER -> new JsonNodeJsonNumber(this.currentNode.getJsonNode());
       case VALUE_TRUE -> JsonValue.TRUE;
       case VALUE_FALSE -> JsonValue.FALSE;
       case VALUE_NULL -> JsonValue.NULL;
@@ -192,12 +192,12 @@ public final class JsonNodeJsonParser implements JsonParser {
     if (this.currentState != Event.START_ARRAY) {
       throw new IllegalStateException("not in start array");
     }
+    JsonNode node = this.currentNode.getContainerNode();
     JsonArray array;
-    JsonNode parentValue = this.nodeStack.peek().getJsonValue();
-    if (parentValue.isEmpty()) {
+    if (node.isEmpty()) {
       array = JsonValue.EMPTY_JSON_ARRAY;
     } else {
-      array = new JsonNodeJsonArray(parentValue);
+      array = new JsonNodeJsonArray(node);
     }
     // #transition() will pop the stack 
     this.currentState = Event.END_ARRAY;
@@ -239,8 +239,10 @@ public final class JsonNodeJsonParser implements JsonParser {
 
     Event nextState(Event currentState);
 
-    JsonNode getJsonValue();
-    
+    JsonNode getJsonNode();
+
+    JsonNode getContainerNode();
+
     Event startEvent();
 
     static final class ObjectJsonNodeIterator implements JsonNodeIterator {
@@ -248,11 +250,13 @@ public final class JsonNodeJsonParser implements JsonParser {
       private final Iterator<Entry<String, JsonNode>> iterator;
       private JsonNode value;
       private String key;
+      private JsonNode object;
 
       ObjectJsonNodeIterator(JsonNode object) {
+        this.object = object;
         this.iterator = object.fields();
       }
-      
+
       @Override
       public Event startEvent() {
         return Event.START_OBJECT;
@@ -277,8 +281,13 @@ public final class JsonNodeJsonParser implements JsonParser {
       }
 
       @Override
-      public JsonNode getJsonValue() {
+      public JsonNode getJsonNode() {
         return this.value;
+      }
+
+      @Override
+      public JsonNode getContainerNode() {
+        return this.object;
       }
 
     }
@@ -287,11 +296,13 @@ public final class JsonNodeJsonParser implements JsonParser {
 
       private final Iterator<JsonNode> nodeIterator;
       private JsonNode value;
+      private JsonNode array;
 
       ArrayJsonNodeIterator(JsonNode array) {
+        this.array = array;
         this.nodeIterator = array.elements();
       }
-      
+
       @Override
       public Event startEvent() {
         return Event.START_ARRAY;
@@ -308,8 +319,13 @@ public final class JsonNodeJsonParser implements JsonParser {
       }
 
       @Override
-      public JsonNode getJsonValue() {
+      public JsonNode getJsonNode() {
         return this.value;
+      }
+
+      @Override
+      public JsonNode getContainerNode() {
+        return this.array;
       }
 
     }

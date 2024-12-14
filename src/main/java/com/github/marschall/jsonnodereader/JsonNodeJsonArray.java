@@ -10,6 +10,7 @@ import java.util.ListIterator;
 import java.util.Objects;
 import java.util.RandomAccess;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -256,6 +257,19 @@ final class JsonNodeJsonArray implements JsonArray, RandomAccess {
       list.add(jsonValue);
     }
     return (List<T>) list;
+  }
+
+  @Override
+  public <T, K extends JsonValue> List<T> getValuesAs(Function<K, T> func) {
+    int size = this.jsonNode.size();
+    List<T> result = new ArrayList<>(size);
+    for (int i = 0; i < size; i++) {
+      JsonNode value = this.jsonNode.get(i);
+      K jsonValue = (K) JsonNodeAdapter.adapt(value);
+      T element = func.apply(jsonValue);
+      result.add(element);
+    }
+    return result;
   }
 
   @Override

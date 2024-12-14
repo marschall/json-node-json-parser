@@ -117,6 +117,40 @@ class JsonNodeJsonParserTests {
 
   @ParameterizedTest
   @MethodSource("parsers")
+  void unsupportedListOperations(StringParserFactory stringParserFactory) throws IOException {
+    try (JsonParser jsonParser = stringParserFactory.parse(EMPTY_STRUCTURES)) {
+      assertSame(Event.START_ARRAY, jsonParser.next());
+      assertSame(Event.START_ARRAY, jsonParser.next());
+      JsonArray array = assumeDoesNotThrow(UnsupportedOperationException.class, jsonParser::getArray);
+      assertThrows(UnsupportedOperationException.class, () -> array.add(Json.createValue(42)));
+    }
+  }
+  
+  @ParameterizedTest
+  @MethodSource("parsers")
+  void getObjectRoot(StringParserFactory stringParserFactory) throws IOException {
+    try (JsonParser jsonParser = stringParserFactory.parse(EMPTY_STRUCTURES)) {
+      assertSame(Event.START_ARRAY, jsonParser.next());
+      JsonArray array = assumeDoesNotThrow(UnsupportedOperationException.class, jsonParser::getArray);
+      assertThrows(UnsupportedOperationException.class, () -> array.add(Json.createValue(42)));
+    }
+  }
+
+  @ParameterizedTest
+  @MethodSource("parsers")
+  void unsupportedMapOperations(StringParserFactory stringParserFactory) throws IOException {
+    try (JsonParser jsonParser = stringParserFactory.parse(EMPTY_STRUCTURES)) {
+      assertSame(Event.START_ARRAY, jsonParser.next());
+      assertSame(Event.START_ARRAY, jsonParser.next());
+      assertSame(Event.END_ARRAY, jsonParser.next());
+      assertSame(Event.START_OBJECT, jsonParser.next());
+      JsonObject object = assumeDoesNotThrow(UnsupportedOperationException.class, jsonParser::getObject);
+      assertThrows(UnsupportedOperationException.class, () -> object.put("new", Json.createValue(42)));
+    }
+  }
+
+  @ParameterizedTest
+  @MethodSource("parsers")
   void structure(StringParserFactory stringParserFactory) throws IOException {
     try (JsonParser jsonParser = stringParserFactory.parse(STRUCTURES)) {
       assertStructures(jsonParser);
