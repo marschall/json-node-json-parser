@@ -17,6 +17,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import org.junit.jupiter.params.ParameterizedTest;
@@ -61,9 +62,11 @@ class JsonNodeJsonParserTests {
   private static final String NUMBERS = "[1, 1.0, 2147483647, -2147483648, 2147483648, -2147483649, 9223372036854775807, -9223372036854775808, 9223372036854775808, -9223372036854775809, 1.1]";
 
   private static final String LITERALS = "[null, true, false, \"hello\\\"world\", 1]";
-  
+
   private static final String EMPTY_STRUCTURES = "[[], {}]";
   
+  private static final String SINGLETON_STRUCTURES = "{\"key\": [\"value\"]}";
+
   private static final String STRUCTURES = "[[null, true, false, 1, \"one\", {\"key\": \"value\"}], "
       + "{\"key1\": true, \"key2\": false, \"key3\": 1, \"key4\": [\"value4\"], \"key5\": \"value5\", \"key6\": null}]";
 
@@ -144,11 +147,17 @@ class JsonNodeJsonParserTests {
   @ParameterizedTest
   @MethodSource("parsers")
   void unsupportedListOperations(StringParserFactory stringParserFactory) throws IOException {
-    try (JsonParser jsonParser = stringParserFactory.parse(EMPTY_STRUCTURES)) {
-      assertSame(Event.START_ARRAY, jsonParser.next());
+    try (JsonParser jsonParser = stringParserFactory.parse(SINGLETON_STRUCTURES)) {
+      assertSame(Event.START_OBJECT, jsonParser.next());
+      assertSame(Event.KEY_NAME, jsonParser.next());
       assertSame(Event.START_ARRAY, jsonParser.next());
       JsonArray array = assumeSupported(jsonParser::getArray);
       assertThrows(UnsupportedOperationException.class, () -> array.add(Json.createValue(42)));
+      assertThrows(UnsupportedOperationException.class, () -> array.set(0, Json.createValue(42)));
+      assertThrows(UnsupportedOperationException.class, () -> array.remove(0));
+      assertThrows(UnsupportedOperationException.class, () -> array.remove(Json.createValue("value")));
+      assertThrows(UnsupportedOperationException.class, () -> array.removeAll(List.of(Json.createValue("value"))));
+      assertThrows(UnsupportedOperationException.class, () -> array.retainAll(List.of(Json.createValue("notPresent"))));
     }
   }
   
@@ -165,13 +174,15 @@ class JsonNodeJsonParserTests {
   @ParameterizedTest
   @MethodSource("parsers")
   void unsupportedMapOperations(StringParserFactory stringParserFactory) throws IOException {
-    try (JsonParser jsonParser = stringParserFactory.parse(EMPTY_STRUCTURES)) {
-      assertSame(Event.START_ARRAY, jsonParser.next());
-      assertSame(Event.START_ARRAY, jsonParser.next());
-      assertSame(Event.END_ARRAY, jsonParser.next());
+    try (JsonParser jsonParser = stringParserFactory.parse(SINGLETON_STRUCTURES)) {
       assertSame(Event.START_OBJECT, jsonParser.next());
       JsonObject object = assumeSupported(jsonParser::getObject);
       assertThrows(UnsupportedOperationException.class, () -> object.put("new", Json.createValue(42)));
+      assertThrows(UnsupportedOperationException.class, () -> {
+        object.putAll(Map.of("new", Json.createValue(42)));
+      });
+      assertThrows(UnsupportedOperationException.class, () -> object.remove("key"));
+      assertThrows(UnsupportedOperationException.class, () -> object.clear());
     }
   }
 
@@ -555,7 +566,8 @@ class JsonNodeJsonParserTests {
     assertSame(ValueType.OBJECT, jsonObject.getValueType());
     assertFalse(jsonObject.isEmpty());
     assertEquals(6, jsonObject.size());
-    
+    assertEquals(Set.of("key1", "key2", "key3", "key4", "key5", "key6"), jsonObject.keySet());
+  
     assertTrue(jsonObject.containsKey("key1"));
     assertFalse(jsonObject.containsKey("key0"));
     assertFalse(jsonObject.containsKey(new Object()));
