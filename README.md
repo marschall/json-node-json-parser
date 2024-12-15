@@ -12,3 +12,12 @@ try (JsonParser parser = new JsonNodeJsonParser(jacksonNode)) {
   // 
 }
 ```
+
+Very similar to `JsonParserFactory#createParser(JsonObject)` but working on a Jackson instead of a JSON-P node.
+
+```java
+JsonObject jsonObject = ;
+try (JsonParser parser = Json.createParserFactory(null).createParser(jsonObject)) {
+  // 
+}
+```

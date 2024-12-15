@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.RandomAccess;
 import java.util.function.Consumer;
@@ -394,7 +395,12 @@ final class JsonNodeJsonArray implements JsonArray, RandomAccess {
 
     @Override
     public JsonValue next() {
-      JsonValue jsonValue = get(this.currentIndex);
+      JsonValue jsonValue;
+      try {
+        jsonValue = get(this.currentIndex);
+      } catch (IndexOutOfBoundsException e) {
+        throw new NoSuchElementException(e);
+      }
       this.currentIndex += 1;
       return jsonValue;
     }

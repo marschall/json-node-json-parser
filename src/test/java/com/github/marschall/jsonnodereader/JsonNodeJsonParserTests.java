@@ -1,5 +1,6 @@
 package com.github.marschall.jsonnodereader;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -15,8 +16,11 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -66,6 +70,10 @@ class JsonNodeJsonParserTests {
   private static final String EMPTY_STRUCTURES = "[[], {}]";
   
   private static final String SINGLETON_STRUCTURES = "{\"key\": [\"value\"]}";
+  
+  private static final String LIST_OF_NUMBERS = "[3, 5, 8]";
+  
+  private static final String NESTED_LIST_OF_NUMBERS = "[[3, 5, 8]]";
 
   private static final String STRUCTURES = "[[null, true, false, 1, \"one\", {\"key\": \"value\"}], "
       + "{\"key1\": true, \"key2\": false, \"key3\": 1, \"key4\": [\"value4\"], \"key5\": \"value5\", \"key6\": null}]";
@@ -187,6 +195,115 @@ class JsonNodeJsonParserTests {
       });
       assertThrows(UnsupportedOperationException.class, () -> object.remove("key"));
       assertThrows(UnsupportedOperationException.class, () -> object.clear());
+    }
+  }
+
+  @ParameterizedTest
+  @MethodSource("parsers")
+  void nestedListAccess(StringParserFactory stringParserFactory) throws IOException {
+    try (JsonParser jsonParser = stringParserFactory.parse(NESTED_LIST_OF_NUMBERS)) {
+      assertSame(Event.START_ARRAY, jsonParser.next());
+      JsonArray outer = assumeSupported(jsonParser::getArray);
+      JsonArray inner = outer.getJsonArray(0);
+      JsonArray expected = Json.createArrayBuilder()
+              .add(3)
+              .add(5)
+              .add(8)
+              .build();
+      assertEquals(expected, inner);
+    }
+  }
+
+  @ParameterizedTest
+  @MethodSource("parsers")
+  void listToArray(StringParserFactory stringParserFactory) throws IOException {
+    try (JsonParser jsonParser = stringParserFactory.parse(LIST_OF_NUMBERS)) {
+      assertSame(Event.START_ARRAY, jsonParser.next());
+      JsonArray array = assumeSupported(jsonParser::getArray);
+
+      JsonValue[] expected = new JsonValue[] {Json.createValue(3), Json.createValue(5), Json.createValue(8)};
+      JsonValue[] actual = array.toArray(new JsonValue[0]);
+      assertArrayEquals(expected, actual);
+
+      actual = array.toArray(new JsonValue[2]);
+      assertArrayEquals(expected, actual);
+      assertSame(JsonValue.class, actual.getClass().getComponentType());
+
+      actual = array.toArray(new JsonNumber[2]);
+      assertArrayEquals(expected, actual);
+      assertSame(JsonNumber.class, actual.getClass().getComponentType());
+
+      Object[] actualOjectArray = array.toArray();
+      assertArrayEquals(expected, actualOjectArray);
+      assertSame(Object.class, actualOjectArray.getClass().getComponentType());
+
+      expected = new JsonValue[] {Json.createValue(3), Json.createValue(5), Json.createValue(8), null, Json.createValue(21)};
+      JsonValue[] input = new JsonValue[] {null, null, null, null, Json.createValue(21)};
+      actual = array.toArray(input);
+      assertSame(input, actual);
+      assertArrayEquals(expected, actual);
+    }
+  }
+
+  @ParameterizedTest
+  @MethodSource("parsers")
+  void listIterator(StringParserFactory stringParserFactory) throws IOException {
+    try (JsonParser jsonParser = stringParserFactory.parse(LIST_OF_NUMBERS)) {
+      assertSame(Event.START_ARRAY, jsonParser.next());
+      JsonArray array = assumeSupported(jsonParser::getArray);
+
+      ListIterator<JsonValue> listIterator = array.listIterator(1);
+      assertTrue(listIterator.hasPrevious());
+      assertTrue(listIterator.hasNext());
+      assertEquals(0, listIterator.previousIndex());
+      assertEquals(1, listIterator.nextIndex());
+
+      assertEquals(Json.createValue(3), listIterator.previous());
+      assertFalse(listIterator.hasPrevious());
+      assertEquals(-1, listIterator.previousIndex());
+
+      assertEquals(Json.createValue(3), listIterator.next());
+      assertThrows(UnsupportedOperationException.class, listIterator::remove);
+      assertThrows(UnsupportedOperationException.class, () -> listIterator.add(Json.createValue(1)));
+      assertThrows(UnsupportedOperationException.class, () -> listIterator.set(Json.createValue(1)));
+      assertEquals(Json.createValue(5), listIterator.next());
+      assertEquals(Json.createValue(8), listIterator.next());
+      assertFalse(listIterator.hasNext());
+      assertEquals(3, listIterator.nextIndex());
+      assertThrows(NoSuchElementException.class, listIterator::next);
+    }
+  }
+
+  @ParameterizedTest
+  @MethodSource("parsers")
+  void sublistIterator(StringParserFactory stringParserFactory) throws IOException {
+    try (JsonParser jsonParser = stringParserFactory.parse(LIST_OF_NUMBERS)) {
+      assertSame(Event.START_ARRAY, jsonParser.next());
+      JsonArray array = assumeSupported(jsonParser::getArray);
+
+      Iterator<JsonValue> subListIterator = array.subList(1, 3).iterator();
+      assertTrue(subListIterator.hasNext());
+      assertEquals(Json.createValue(5), subListIterator.next());
+      assertTrue(subListIterator.hasNext());
+      assertEquals(Json.createValue(8), subListIterator.next());
+      assertFalse(subListIterator.hasNext());
+      assertThrows(NoSuchElementException.class, subListIterator::next);
+    }
+  }
+
+  @ParameterizedTest
+  @MethodSource("parsers")
+  void getValuesAs(StringParserFactory stringParserFactory) throws IOException {
+    try (JsonParser jsonParser = stringParserFactory.parse(LIST_OF_NUMBERS)) {
+      assertSame(Event.START_ARRAY, jsonParser.next());
+      JsonArray array = assumeSupported(jsonParser::getArray);
+
+      List<JsonNumber> numberValues = array.getValuesAs(JsonNumber.class);
+      List<JsonNumber> expected = List.of(Json.createValue(3), Json.createValue(5), Json.createValue(8));
+      assertEquals(expected, numberValues);
+      
+      List<Integer> intValuesDoubled = array.getValuesAs((JsonNumber number) -> number.intValue() * 2);
+      assertEquals(List.of(6, 10, 16), intValuesDoubled);
     }
   }
 
@@ -495,7 +612,10 @@ class JsonNodeJsonParserTests {
     assertEquals(6, jsonArray.size());
     assertFalse(jsonArray.isEmpty());
     assertTrue(jsonArray.contains(Json.createValue(1)));
+    assertFalse(jsonArray.contains(1));
+    assertTrue(jsonArray.containsAll(List.of(Json.createValue(1), JsonValue.TRUE)));
     assertFalse(jsonArray.contains(Json.createValue(2)));
+    assertFalse(jsonArray.containsAll(List.of(Json.createValue(1), Json.createValue(2))));
 
     assertTrue(jsonArray.isNull(0));
     assertFalse(jsonArray.isNull(1));
