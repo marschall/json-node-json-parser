@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.github.marschall</groupId>
   <artifactId>json-node-json-parser</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1-SNAPSHOT</version>
   
   <name>JsonNodeJsonParser</name>
   <inceptionYear>2024</inceptionYear>
@@ -15,7 +15,7 @@
     <connection>scm:git:git@github.com:marschall/json-node-json-parser.git</connection>
     <developerConnection>scm:git:git@github.com:marschall/json-node-json-parser.git</developerConnection>
     <url>${project.url}</url>
-    <tag>1.0.0</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <dependencyManagement>
