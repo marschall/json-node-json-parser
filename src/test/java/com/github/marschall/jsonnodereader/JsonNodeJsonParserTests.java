@@ -16,10 +16,12 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -55,8 +57,8 @@ class JsonNodeJsonParserTests {
   private static final JsonParserFactory PARSER_FACTORY = Json.createParserFactory(null);
 
   private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder()
-      .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
-      .build();
+          .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+          .build();
 
   private static final String SAMPLE_JSON = "{\"key1\":[1,1234567890,1.1,true,false,null],\"key2\":[\"string\",-2]}";
 
@@ -68,22 +70,26 @@ class JsonNodeJsonParserTests {
   private static final String LITERALS = "[null, true, false, \"hello\\\"world\", 1]";
 
   private static final String EMPTY_STRUCTURES = "[[], {}]";
-  
+
   private static final String SINGLETON_STRUCTURES = "{\"key\": [\"value\"]}";
-  
+
+  private static final String SINGLETON_OBJECT = "{\"key\": \"value\"}";
+
+  private static final String NESTED_SINGLETON_STRUCTURES = "{\"key\": {\"key\": \"value\"}}";
+
   private static final String LIST_OF_NUMBERS = "[3, 5, 8]";
-  
+
   private static final String NESTED_LIST_OF_NUMBERS = "[[3, 5, 8]]";
 
   private static final String STRUCTURES = "[[null, true, false, 1, \"one\", {\"key\": \"value\"}], "
-      + "{\"key1\": true, \"key2\": false, \"key3\": 1, \"key4\": [\"value4\"], \"key5\": \"value5\", \"key6\": null}]";
+          + "{\"key1\": true, \"key2\": false, \"key3\": 1, \"key4\": [\"value4\"], \"key5\": \"value5\", \"key6\": null}]";
 
   static List<Arguments> parsers() {
     return List.of(
-        Arguments.of((StringParserFactory) JsonNodeJsonParserTests::defaultParser),
-        Arguments.of((StringParserFactory) JsonNodeJsonParserTests::jsonStructureParser),
-        Arguments.of((StringParserFactory) JsonNodeJsonParserTests::jsonNodeJsonParser)
-        );
+            Arguments.of((StringParserFactory) JsonNodeJsonParserTests::defaultParser),
+            Arguments.of((StringParserFactory) JsonNodeJsonParserTests::jsonStructureParser),
+            Arguments.of((StringParserFactory) JsonNodeJsonParserTests::jsonNodeJsonParser)
+            );
   }
 
   @ParameterizedTest
@@ -172,7 +178,7 @@ class JsonNodeJsonParserTests {
       assertThrows(UnsupportedOperationException.class, () -> array.retainAll(List.of(Json.createValue("notPresent"))));
     }
   }
-  
+
   @ParameterizedTest
   @MethodSource("parsers")
   void getObjectRoot(StringParserFactory stringParserFactory) throws IOException {
@@ -301,9 +307,37 @@ class JsonNodeJsonParserTests {
       List<JsonNumber> numberValues = array.getValuesAs(JsonNumber.class);
       List<JsonNumber> expected = List.of(Json.createValue(3), Json.createValue(5), Json.createValue(8));
       assertEquals(expected, numberValues);
-      
+
       List<Integer> intValuesDoubled = array.getValuesAs((JsonNumber number) -> number.intValue() * 2);
       assertEquals(List.of(6, 10, 16), intValuesDoubled);
+    }
+  }
+
+  @ParameterizedTest
+  @MethodSource("parsers")
+  void nestedObjectAccess(StringParserFactory stringParserFactory) throws IOException {
+    try (JsonParser jsonParser = stringParserFactory.parse(NESTED_SINGLETON_STRUCTURES)) {
+      assertSame(Event.START_OBJECT, jsonParser.next());
+      JsonObject outer = assumeSupported(jsonParser::getObject);
+      JsonObject inner = outer.getJsonObject("key");
+      JsonObject expected = Json.createObjectBuilder()
+              .add("key", "value")
+              .build();
+      assertEquals(expected, inner);
+    }
+  }
+
+  @ParameterizedTest
+  @MethodSource("parsers")
+  void objectCollections(StringParserFactory stringParserFactory) throws IOException {
+    try (JsonParser jsonParser = stringParserFactory.parse(SINGLETON_OBJECT)) {
+      assertSame(Event.START_OBJECT, jsonParser.next());
+      JsonObject object = assumeSupported(jsonParser::getObject);
+      Collection<JsonValue> values = object.values();
+      assertEquals(List.of(Json.createValue("value")), values);
+
+      Set<Entry<String,JsonValue>> entrySet = object.entrySet();
+      assertEquals(Set.of(Map.entry("key", Json.createValue("value"))), entrySet);
     }
   }
 
@@ -345,22 +379,22 @@ class JsonNodeJsonParserTests {
   private static void assertRoundTrip(JsonParser jsonParser) throws IOException {
     String output;
     try (StringWriter stringWriter = new StringWriter();
-        JsonGenerator jsonWriter = Json.createGenerator(stringWriter)) {
+            JsonGenerator jsonWriter = Json.createGenerator(stringWriter)) {
       while (jsonParser.hasNext()) {
         switch (jsonParser.next()) {
-        case KEY_NAME -> jsonWriter.writeKey(jsonParser.getString());
-        case START_ARRAY -> jsonWriter.writeStartArray();
-        case START_OBJECT -> jsonWriter.writeStartObject();
-        case END_ARRAY, END_OBJECT -> jsonWriter.writeEnd();
-        case VALUE_TRUE -> jsonWriter.write(true);
-        case VALUE_FALSE -> jsonWriter.write(false);
-        case VALUE_NULL -> jsonWriter.writeNull();
-        case VALUE_NUMBER -> jsonWriter.write(jsonParser.getBigDecimal());
-        case VALUE_STRING -> jsonWriter.write(jsonParser.getString());
-        default -> {
-          fail("unexpeted event");
-          break;
-        }
+          case KEY_NAME -> jsonWriter.writeKey(jsonParser.getString());
+          case START_ARRAY -> jsonWriter.writeStartArray();
+          case START_OBJECT -> jsonWriter.writeStartObject();
+          case END_ARRAY, END_OBJECT -> jsonWriter.writeEnd();
+          case VALUE_TRUE -> jsonWriter.write(true);
+          case VALUE_FALSE -> jsonWriter.write(false);
+          case VALUE_NULL -> jsonWriter.writeNull();
+          case VALUE_NUMBER -> jsonWriter.write(jsonParser.getBigDecimal());
+          case VALUE_STRING -> jsonWriter.write(jsonParser.getString());
+          default -> {
+            fail("unexpeted event");
+            break;
+          }
         };
       }
       jsonWriter.flush();
@@ -372,42 +406,42 @@ class JsonNodeJsonParserTests {
   private static void assertRoundTripSkip(JsonParser jsonParser) throws IOException {
     String output;
     try (StringWriter stringWriter = new StringWriter();
-        JsonGenerator jsonWriter = Json.createGenerator(stringWriter)) {
+            JsonGenerator jsonWriter = Json.createGenerator(stringWriter)) {
       boolean firstStartArray = true;
       while (jsonParser.hasNext()) {
         switch (jsonParser.next()) {
-        case KEY_NAME -> jsonWriter.writeKey(jsonParser.getString());
-        case START_ARRAY -> {
-          if (firstStartArray) {
-            jsonWriter.writeStartArray();
-            firstStartArray = false;
-          } else {
-            jsonParser.skipArray();
+          case KEY_NAME -> jsonWriter.writeKey(jsonParser.getString());
+          case START_ARRAY -> {
+            if (firstStartArray) {
+              jsonWriter.writeStartArray();
+              firstStartArray = false;
+            } else {
+              jsonParser.skipArray();
+              try {
+                assertSame(Event.END_ARRAY, jsonParser.currentEvent());
+              } catch (Exception e) {
+                // optional method
+              }
+            }
+          }
+          case START_OBJECT -> {
+            jsonParser.skipObject();
             try {
-              assertSame(Event.END_ARRAY, jsonParser.currentEvent());
-            } catch (Exception e) {
+              assertSame(Event.END_OBJECT, jsonParser.currentEvent());
+            } catch (UnsupportedOperationException e) {
               // optional method
             }
           }
-        }
-        case START_OBJECT -> {
-          jsonParser.skipObject();
-          try {
-            assertSame(Event.END_OBJECT, jsonParser.currentEvent());
-          } catch (UnsupportedOperationException e) {
-            // optional method
+          case END_ARRAY, END_OBJECT -> jsonWriter.writeEnd();
+          case VALUE_TRUE -> jsonWriter.write(true);
+          case VALUE_FALSE -> jsonWriter.write(false);
+          case VALUE_NULL -> jsonWriter.writeNull();
+          case VALUE_NUMBER -> jsonWriter.write(jsonParser.getBigDecimal());
+          case VALUE_STRING -> jsonWriter.write(jsonParser.getString());
+          default -> {
+            fail("unexpeted event");
+            break;
           }
-        }
-        case END_ARRAY, END_OBJECT -> jsonWriter.writeEnd();
-        case VALUE_TRUE -> jsonWriter.write(true);
-        case VALUE_FALSE -> jsonWriter.write(false);
-        case VALUE_NULL -> jsonWriter.writeNull();
-        case VALUE_NUMBER -> jsonWriter.write(jsonParser.getBigDecimal());
-        case VALUE_STRING -> jsonWriter.write(jsonParser.getString());
-        default -> {
-          fail("unexpeted event");
-          break;
-        }
         };
       }
       jsonWriter.flush();
@@ -659,7 +693,7 @@ class JsonNodeJsonParserTests {
     assertEquals("one", jsonArray.getString(4));
     JsonString jsonString = jsonArray.getJsonString(4);
     assertEquals(Json.createValue("one"), jsonString);
-    
+
     JsonObject jsonObjectInArray = jsonArray.getJsonObject(5);
     JsonObject expectedObject = Json.createObjectBuilder()
             .add("key", "value")
@@ -672,13 +706,13 @@ class JsonNodeJsonParserTests {
     assertNotEquals(jsonObjectInArray, Map.of("key", "value"));
 
     JsonArray expectedArray = Json.createArrayBuilder()
-        .addNull()
-        .add(true)
-        .add(false)
-        .add(1)
-        .add("one")
-        .add(Json.createObjectBuilder().add("key", "value").build())
-        .build();
+            .addNull()
+            .add(true)
+            .add(false)
+            .add(1)
+            .add("one")
+            .add(Json.createObjectBuilder().add("key", "value").build())
+            .build();
     assertEquals(expectedArray, jsonArray);
     assertEquals(jsonArray, jsonArray);
     assertEquals(jsonArray, expectedArray);
@@ -691,15 +725,15 @@ class JsonNodeJsonParserTests {
     assertFalse(jsonObject.isEmpty());
     assertEquals(6, jsonObject.size());
     assertEquals(Set.of("key1", "key2", "key3", "key4", "key5", "key6"), jsonObject.keySet());
-  
+
     assertTrue(jsonObject.containsKey("key1"));
     assertFalse(jsonObject.containsKey("key0"));
     assertFalse(jsonObject.containsKey(new Object()));
-    
+
     assertTrue(jsonObject.containsValue(Json.createValue("value5")));
     assertFalse(jsonObject.containsValue("value5"));
     assertFalse(jsonObject.containsValue(Json.createValue("value6")));
-    
+
     assertTrue(jsonObject.getBoolean("key1"));
     assertFalse(jsonObject.getBoolean("key2"));
     assertEquals(1, jsonObject.getInt("key3"));
@@ -751,7 +785,7 @@ class JsonNodeJsonParserTests {
     assertSame(Event.END_ARRAY, jsonParser.next());
     assertFalse(jsonParser.hasNext());
   }
-  
+
   private static <T> T assumeSupported(Supplier<T> supplier) {
     return assumeDoesNotThrow(UnsupportedOperationException.class, supplier);
   }
