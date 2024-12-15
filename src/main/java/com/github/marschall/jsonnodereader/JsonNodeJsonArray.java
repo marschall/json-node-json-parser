@@ -1,9 +1,9 @@
 package com.github.marschall.jsonnodereader;
 
 import java.lang.reflect.Array;
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -24,7 +24,7 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
 final class JsonNodeJsonArray implements JsonArray, RandomAccess {
-  
+
   private final JsonNode jsonNode;
 
   JsonNodeJsonArray(JsonNode jsonNode) {
@@ -65,7 +65,7 @@ final class JsonNodeJsonArray implements JsonArray, RandomAccess {
   public Iterator<JsonValue> iterator() {
     return new JsonValueIterator();
   }
-  
+
   @Override
   public Object[] toArray() {
     int size = this.jsonNode.size();
@@ -203,8 +203,32 @@ final class JsonNodeJsonArray implements JsonArray, RandomAccess {
 
   @Override
   public List<JsonValue> subList(int fromIndex, int toIndex) {
-    // not optimized
-    return Collections.unmodifiableList(this).subList(fromIndex, toIndex);
+    Objects.checkFromToIndex(fromIndex, toIndex, this.size());
+    return new SubList(fromIndex, toIndex);
+  }
+
+  final class SubList extends AbstractList<JsonValue> implements RandomAccess {
+    // not optimized at all
+
+    private final int fromIndex;
+    private final int toIndex;
+
+    SubList(int fromIndex, int toIndex) {
+      this.fromIndex = fromIndex;
+      this.toIndex = toIndex;
+    }
+
+    @Override
+    public int size() {
+      return this.toIndex - this.fromIndex;
+    }
+
+    @Override
+    public JsonValue get(int index) {
+      Objects.checkIndex(index + this.fromIndex, JsonNodeJsonArray.this.size());
+      return JsonNodeJsonArray.this.get(index + this.fromIndex);
+    }
+
   }
 
   @Override
@@ -377,13 +401,13 @@ final class JsonNodeJsonArray implements JsonArray, RandomAccess {
   }
 
   final class JsonValueIterator implements ListIterator<JsonValue> {
-    
+
     private int currentIndex;
-    
+
     JsonValueIterator() {
       this(0);
     }
-    
+
     JsonValueIterator(int initial) {
       this.currentIndex = initial;
     }
@@ -441,7 +465,7 @@ final class JsonNodeJsonArray implements JsonArray, RandomAccess {
     public void add(JsonValue e) {
       throw new UnsupportedOperationException("add");
     }
-    
+
     @Override
     public void forEachRemaining(Consumer<? super JsonValue> action) {
       for (int i = this.currentIndex; i < size(); i++) {
@@ -449,7 +473,7 @@ final class JsonNodeJsonArray implements JsonArray, RandomAccess {
       }
       this.currentIndex = size();
     }
-    
+
   }
 
 }

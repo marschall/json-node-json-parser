@@ -334,7 +334,8 @@ class JsonNodeJsonParserTests {
       assertSame(Event.START_OBJECT, jsonParser.next());
       JsonObject object = assumeSupported(jsonParser::getObject);
       Collection<JsonValue> values = object.values();
-      assertEquals(List.of(Json.createValue("value")), values);
+      assertEquals(1, values.size());
+      assertTrue(values.contains(Json.createValue("value")));
 
       Set<Entry<String,JsonValue>> entrySet = object.entrySet();
       assertEquals(Set.of(Map.entry("key", Json.createValue("value"))), entrySet);
